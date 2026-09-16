@@ -1,0 +1,252 @@
+<script>
+  var Js_Dashboard = {
+    requestVersion: 0,
+    workflowState: null,
+    workflowStarting: false,
+
+    init: function () {
+      this.requestVersion += 1;
+      var username = document.getElementById('dashboard-username');
+      var user = EcoGrow.State.currentUser || {};
+      if (username) username.textContent = user.displayName || user.username || 'explorador';
+      var workflowButton = document.getElementById('workflow-action-btn');
+      if (workflowButton && workflowButton.dataset.ecoGrowBound !== 'true') {
+        workflowButton.addEventListener('click', this.handleWorkflowAction.bind(this));
+        workflowButton.dataset.ecoGrowBound = 'true';
+      }
+      this.loadDashboardData(this.requestVersion);
+    },
+
+    destroy: function () { this.requestVersion += 1; },
+
+    setText: function (id, value) {
+      var element = document.getElementById(id);
+      if (element) element.textContent = value;
+    },
+
+    loadDashboardData: function (version) {
+      EcoGrow.Api.call('dashboard/data').then(function (data) {
+        if (version !== Js_Dashboard.requestVersion) return;
+        data = data || {};
+        Js_Dashboard.setText('total-boards', Number(data.totalBoards) || 0);
+        Js_Dashboard.setText('average-score', Math.round(Number(data.averageScore) || 0));
+        Js_Dashboard.setText('dashboard-balance', Math.round(Number(data.balance) || 0));
+        Js_Dashboard.setText('dashboard-unread', Number(data.unreadNotifications) || 0);
+        if (EcoGrow.State.currentUser) EcoGrow.State.currentUser.balance = Number(data.balance) || 0;
+        Js_Dashboard.setText('player-balance', (Number(data.balance) || 0) + ' créditos');
+        if (window.Js_Notifications) Js_Notifications.refreshBadge(data.unreadNotifications || 0);
+        Js_Dashboard.renderSimulations(Array.isArray(data.latestSimulations) ? data.latestSimulations : []);
+        Js_Dashboard.renderBoards(Array.isArray(data.activeBoards) ? data.activeBoards : []);
+        Js_Dashboard.loadEconomySummary(version);
+        Js_Dashboard.loadPlayerComparisons(version);
+        Js_Dashboard.loadBasicWorkflow(version);
+      }).catch(function (error) {
+        if (version !== Js_Dashboard.requestVersion) return;
+        var boards = document.getElementById('active-boards-list');
+        var activity = document.getElementById('latest-simulations-list');
+        if (boards) boards.innerHTML = '<div class="empty-state"><strong>Dados indisponíveis</strong><span>Não foi possível carregar seus sistemas.</span><br><button class="btn btn-small" type="button" data-dashboard-retry>Tentar novamente</button></div>';
+        if (activity) activity.innerHTML = '<li><strong>Sem atividade disponível</strong><small>Tente novamente mais tarde.</small></li>';
+        var retry = boards && boards.querySelector('[data-dashboard-retry]');
+        if (retry) retry.addEventListener('click', function () { Js_Dashboard.init(); });
+        console.error('[EcoGrow] Falha ao carregar o dashboard:', error);
+        EcoGrow.UI.showMessage('Não foi possível atualizar a visão geral. Tente novamente.', 'error');
+      });
+    },
+
+    loadEconomySummary: function (version) {
+      EcoGrow.Api.call('economy/summary', { limit: 1 }).then(function (data) {
+        if (version !== Js_Dashboard.requestVersion) return;
+        data = data || {};
+        Js_Dashboard.setText('dashboard-balance', Math.round(Number(data.balance) || 0));
+        if (Array.isArray(data.transactions) && data.transactions.length) {
+          Js_Dashboard.setText('economy-last-event', data.transactions[0].description || 'última movimentação');
+        }
+      }).catch(function () { /* O restante do dashboard independe do extrato. */ });
+    },
+
+    loadPlayerComparisons: function (version) {
+      EcoGrow.Api.call('comparison/players', { limit: 10 }).then(function (data) {
+        if (version !== Js_Dashboard.requestVersion) return;
+        Js_Dashboard.renderPlayerComparisons(data || {});
+      }).catch(function () {
+        if (version !== Js_Dashboard.requestVersion) return;
+        var list = document.getElementById('player-leaderboard');
+        if (list) list.innerHTML = '<li class="empty-state">Comparativo indisponível neste momento.</li>';
+      });
+    },
+
+    renderPlayerComparisons: function (data) {
+      var list = document.getElementById('player-leaderboard');
+      var current = document.getElementById('current-player-ranking');
+      if (!list || !current) return;
+      var currentPlayer = data.currentPlayer || {};
+      current.textContent = currentPlayer.rank ? 'Sua tentativa está registrada' : 'Faça uma simulação para registrar uma tentativa';
+      // Vizinhança primeiro: 2 acima e 2 abaixo é o que o estudante compara.
+      if (window.RankingVizinhanca) RankingVizinhanca.render('rankingVizinhanca', data.vizinhanca);
+      list.innerHTML = '';
+      var leaderboard = Array.isArray(data.leaderboard) ? data.leaderboard : [];
+      if (!leaderboard.length) {
+        list.innerHTML = '<li class="empty-state">O ranking começa com a primeira simulação da comunidade.</li>';
+        return;
+      }
+      leaderboard.forEach(function (player) {
+        var row = document.createElement('li');
+        var position = document.createElement('span');
+        var identity = document.createElement('div');
+        var average = document.createElement('div');
+        var best = document.createElement('div');
+        var trend = document.createElement('div');
+        row.className = 'ranking-row' + (player.isCurrentUser ? ' current' : '');
+        position.className = 'ranking-position';
+        position.textContent = '#' + player.rank;
+        identity.className = 'ranking-player';
+        identity.innerHTML = '<strong></strong><small></small>';
+        identity.querySelector('strong').textContent = player.isCurrentUser ? 'Sua solução' : 'Solução da turma ' + player.rank;
+        identity.querySelector('small').textContent = player.totalSimulations + ' simulações';
+        average.className = 'ranking-metric'; average.innerHTML = '<strong></strong><small>Média</small>'; average.querySelector('strong').textContent = Number(player.averageScore || 0).toFixed(1);
+        best.className = 'ranking-metric'; best.innerHTML = '<strong></strong><small>Melhor</small>'; best.querySelector('strong').textContent = Math.round(Number(player.bestScore) || 0);
+        trend.className = 'ranking-metric ' + (Number(player.trend) > 0 ? 'trend-up' : Number(player.trend) < 0 ? 'trend-down' : '');
+        trend.innerHTML = '<strong></strong><small>Tendência</small>';
+        trend.querySelector('strong').textContent = (Number(player.trend) > 0 ? '+' : '') + Number(player.trend || 0).toFixed(1);
+        row.append(position, identity, average, best, trend);
+        list.appendChild(row);
+      });
+    },
+
+    loadBasicWorkflow: function (version) {
+      EcoGrow.Api.call('workflow/status').then(function (data) {
+        if (version !== Js_Dashboard.requestVersion) return;
+        Js_Dashboard.renderBasicWorkflow(data || {});
+      }).catch(function () {
+        if (version !== Js_Dashboard.requestVersion) return;
+        var button = document.getElementById('workflow-action-btn');
+        if (button) button.disabled = true;
+      });
+    },
+
+    renderBasicWorkflow: function (workflow) {
+      this.workflowState = workflow;
+      var progress = document.getElementById('workflow-progress');
+      var title = document.getElementById('workflow-title');
+      var copy = document.getElementById('workflow-copy');
+      var button = document.getElementById('workflow-action-btn');
+      var reviewFields = document.getElementById('workflow-review-fields');
+      if (progress) progress.textContent = Math.max(0, Math.min(100, Number(workflow.progress) || 0)) + '%';
+      if (!button) return;
+      var action = workflow.nextAction || { type: 'start', label: 'Começar jornada' };
+      if (reviewFields) reviewFields.hidden = action.type !== 'review';
+      button.textContent = action.label || 'Continuar';
+      button.disabled = false;
+      if (action.type === 'start') {
+        if (title) title.textContent = 'Seu primeiro ecociclo.';
+        if (copy) copy.textContent = 'Receba um sistema inicial de captação, tratamento e cultivo para experimentar.';
+      } else if (action.type === 'continue') {
+        if (title) title.textContent = 'O sistema está pronto para diagnóstico.';
+        if (copy) copy.textContent = 'Abra o ecociclo, ajuste os módulos e execute sua primeira simulação.';
+      } else if (action.type === 'review') {
+        if (title) title.textContent = 'Interprete antes de concluir.';
+        if (copy) copy.textContent = 'Use os alertas do modelo para registrar uma descoberta e a próxima mudança que você testaria.';
+      } else {
+        if (title) title.textContent = 'Jornada essencial concluída.';
+        if (copy) copy.textContent = 'Seu maior índice no modelo é ' + Math.round(Number(workflow.bestScore) || 0) + '. Leia os alertas e explique o que mudou.';
+      }
+    },
+
+    handleWorkflowAction: function () {
+      if (this.workflowStarting) return;
+      var workflow = this.workflowState || {};
+      var action = workflow.nextAction || { type: 'start' };
+      var button = document.getElementById('workflow-action-btn');
+      if (action.type === 'start') {
+        this.workflowStarting = true;
+        if (button) button.disabled = true;
+        EcoGrow.Api.call('workflow/start').then(function (data) {
+          EcoGrow.UI.showMessage(data.created ? 'Sistema inicial criado.' : 'Jornada retomada.', 'success');
+          EcoGrow.Router.navigate('boardEditor?boardId=' + encodeURIComponent(data.boardId));
+        }).catch(function (error) {
+          console.error('[EcoGrow] Falha ao iniciar a jornada:', error);
+          EcoGrow.UI.showMessage('Não foi possível iniciar a jornada. Tente novamente.', 'error');
+          if (button) button.disabled = false;
+        }).finally(function () { Js_Dashboard.workflowStarting = false; });
+        return;
+      }
+      if (action.type === 'continue' && action.boardId) {
+        EcoGrow.Router.navigate('boardEditor?boardId=' + encodeURIComponent(action.boardId));
+      } else if (action.type === 'review') {
+        var reflection = document.getElementById('workflow-reflection').value.trim();
+        var nextChange = document.getElementById('workflow-next-change').value.trim();
+        if (reflection.length < 12 || nextChange.length < 8) {
+          EcoGrow.UI.showMessage('Registre uma descoberta e a próxima mudança que testaria.', 'warning');
+          return;
+        }
+        if (button) button.disabled = true;
+        EcoGrow.Api.call('workflow/review', { simulationId: action.simulationId, reflection: reflection, nextChange: nextChange }).then(function(data) {
+          EcoGrow.UI.showMessage('Decisão registrada. Jornada essencial concluída.', 'success');
+          Js_Dashboard.renderBasicWorkflow(data.workflow);
+        }).catch(function(error) {
+          console.error('[EcoGrow] Falha ao registrar a decisão:', error);
+          EcoGrow.UI.showMessage('Não foi possível registrar a decisão. Tente novamente.', 'error');
+          if (button) button.disabled = false;
+        });
+      } else {
+        EcoGrow.Router.navigate(action.view || 'reports');
+      }
+    },
+
+    renderSimulations: function (simulations) {
+      var list = document.getElementById('latest-simulations-list');
+      if (!list) return;
+      list.innerHTML = '';
+      if (!simulations.length) {
+        list.innerHTML = '<li><strong>Nenhuma simulação ainda</strong><small>Seu primeiro diagnóstico aparecerá aqui.</small></li>';
+        return;
+      }
+      simulations.slice(0, 5).forEach(function (simulation) {
+        var item = document.createElement('li');
+        var name = document.createElement('strong');
+        var detail = document.createElement('small');
+        var score = document.createElement('span');
+        name.textContent = simulation.boardName || 'Sistema sem nome';
+        detail.append(EcoGrow.UI.formatDate(simulation.timestamp) + ' · Score ');
+        score.className = 'activity-score';
+        score.textContent = simulation.score == null ? '—' : Math.round(Number(simulation.score) || 0);
+        detail.appendChild(score);
+        item.append(name, detail);
+        list.appendChild(item);
+      });
+    },
+
+    renderBoards: function (boards) {
+      var list = document.getElementById('active-boards-list');
+      if (!list) return;
+      list.innerHTML = '';
+      if (!boards.length) {
+        list.innerHTML = '<div class="empty-state"><strong>Seu primeiro sistema começa aqui.</strong><span>Receba uma base com captação, tratamento e cultivo para experimentar.</span><br><button class="btn btn-small" type="button" data-new-board>Montar sistema inicial</button></div>';
+        list.querySelector('[data-new-board]').addEventListener('click', function () { Js_Dashboard.handleWorkflowAction(); });
+        return;
+      }
+      boards.slice(0, 6).forEach(function (board) {
+        var row = document.createElement('div');
+        var symbol = document.createElement('span');
+        var copy = document.createElement('div');
+        var name = document.createElement('strong');
+        var updated = document.createElement('small');
+        var button = document.createElement('button');
+        row.className = 'project-row';
+        symbol.className = 'project-symbol';
+        symbol.setAttribute('aria-hidden', 'true');
+        symbol.textContent = (board.name || 'E').charAt(0).toUpperCase();
+        copy.className = 'project-copy';
+        name.textContent = board.name || 'Sistema sem nome';
+        updated.textContent = 'Atualizado ' + EcoGrow.UI.formatDate(board.timestamp);
+        copy.append(name, updated);
+        button.className = 'btn btn-secondary btn-small';
+        button.type = 'button';
+        button.textContent = 'Continuar';
+        button.addEventListener('click', function () { EcoGrow.Router.navigate('boardEditor?boardId=' + encodeURIComponent(board.id)); });
+        row.append(symbol, copy, button);
+        list.appendChild(row);
+      });
+    }
+  };
+</script>

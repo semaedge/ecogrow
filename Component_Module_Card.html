@@ -1,0 +1,34 @@
+<template id="module-card-template">
+  <div class="module-card" draggable="true" tabindex="0" role="button">
+    <span class="module-card-icon" aria-hidden="true"></span>
+    <span class="module-card-copy"><strong></strong><small></small></span>
+    <span class="module-card-grip" aria-hidden="true">⠿</span>
+  </div>
+</template>
+<script>
+  var Component_Module_Card = {
+    icons: { blackwater_input: '●', greywater_input: '≈', greywater_treatment: '✦', blackwater_treatment: '✦', compost_treatment: '✦', mixer: '⇄', garden_output: '↑', utility: '◆', pipe_vertical: '↕', pump_module: '↗' },
+
+    create: function (module, options) {
+      options = options || {};
+      var template = document.getElementById('module-card-template');
+      var card = template.content.firstElementChild.cloneNode(true);
+      card.dataset.moduleId = module.id;
+      card.dataset.type = module.type || '';
+      card.classList.toggle('selected', Boolean(options.selected));
+      card.setAttribute('aria-pressed', String(Boolean(options.selected)));
+      card.setAttribute('aria-label', 'Selecionar ' + (module.name || 'módulo'));
+      card.querySelector('.module-card-icon').textContent = this.icons[module.type] || '●';
+      card.querySelector('strong').textContent = module.name || 'Módulo';
+      card.querySelector('small').textContent = options.typeLabel || module.type || 'módulo';
+      return card;
+    }
+  };
+</script>
+<style>
+  .module-card { display:flex;align-items:center;gap:11px;min-height:66px;margin-bottom:8px;padding:10px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.055);color:#fff;cursor:grab;transition:border var(--transition),background var(--transition),transform var(--transition); }
+  .module-card:hover { transform:translateX(2px);border-color:rgba(126,209,163,.45);background:rgba(255,255,255,.1); }
+  .module-card.selected { border-color:#84d4a7;background:rgba(103,199,146,.18);box-shadow:inset 3px 0 #84d4a7; }
+  .module-card-icon { width:38px;height:38px;display:grid;place-items:center;flex:none;border-radius:10px;background:#e1f3e9;color:#268255; }
+  .module-card-copy { min-width:0;flex:1; }.module-card-copy strong,.module-card-copy small{display:block}.module-card-copy strong{overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.module-card-copy small{margin-top:2px;color:#9fbeaf;font-size:10px;text-transform:capitalize}.module-card-grip{color:#719786;font-size:17px}
+</style>

@@ -1,0 +1,27 @@
+<template id="alert-component-template">
+  <div class="toast" role="status">
+    <span class="toast-icon" aria-hidden="true"></span>
+    <div class="toast-copy"></div>
+    <button class="toast-close" type="button" aria-label="Fechar">×</button>
+  </div>
+</template>
+<script>
+  var Component_Alert = {
+    types: { success: '✓', error: '!', warning: '!', info: 'i' },
+
+    create: function (message, type, onClose) {
+      type = Object.prototype.hasOwnProperty.call(this.types, type) ? type : 'info';
+      var template = document.getElementById('alert-component-template');
+      var alert = template.content.firstElementChild.cloneNode(true);
+      alert.classList.add('toast-' + type);
+      alert.setAttribute('role', type === 'error' ? 'alert' : 'status');
+      alert.querySelector('.toast-icon').textContent = this.types[type];
+      alert.querySelector('.toast-copy').textContent = String(message || '');
+      alert.querySelector('.toast-close').addEventListener('click', function () {
+        alert.remove();
+        if (typeof onClose === 'function') onClose();
+      });
+      return alert;
+    }
+  };
+</script>

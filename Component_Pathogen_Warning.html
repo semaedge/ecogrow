@@ -1,0 +1,36 @@
+<template id="pathogen-warning-template"><div class="pathogen-status" role="status"><strong></strong><span></span></div></template>
+<script>
+  var Component_Pathogen_Warning = {
+    summarize: function (waterQuality) {
+      var total = 0;
+      Object.keys(waterQuality || {}).forEach(function (key) {
+        var pathogens = waterQuality[key] && waterQuality[key].pathogens || {};
+        total += (Number(pathogens.bacteria) || 0) + (Number(pathogens.virus) || 0);
+      });
+      return total;
+    },
+
+    classify: function (level) {
+      level = Math.max(0, Number(level) || 0);
+      if (level < .05) return { level: 'safe', title: 'Sem alerta no modelo', message: 'O jogo não encontrou carga alta. Isso não garante segurança na vida real.' };
+      if (level < .2) return { level: 'warning', title: 'Atenção aos microrganismos', message: 'O modelo ainda encontrou risco. Revise as etapas de cuidado com a água.' };
+      return { level: 'danger', title: 'Pare e revise', message: 'O modelo encontrou risco biológico alto. Não use água real e peça ajuda ao professor.' };
+    },
+
+    mount: function (container, pathogenLevel) {
+      if (typeof container === 'string') container = document.getElementById(container);
+      if (!container) return null;
+      var state = this.classify(pathogenLevel);
+      var template = document.getElementById('pathogen-warning-template');
+      var component = template.content.firstElementChild.cloneNode(true);
+      component.classList.add('pathogen-' + state.level);
+      component.querySelector('strong').textContent = state.title;
+      component.querySelector('span').textContent = state.message;
+      container.replaceChildren(component);
+      return state;
+    }
+  };
+</script>
+<style>
+  .pathogen-status{display:grid;gap:2px;margin-top:15px;padding:11px;border-radius:10px;font-size:10px}.pathogen-status strong{font-size:11px}.pathogen-safe{background:#e5f4eb;color:#176b45}.pathogen-warning{background:#fff0da;color:#8a5b16}.pathogen-danger{background:#fde8e5;color:#a43d2f}
+</style>

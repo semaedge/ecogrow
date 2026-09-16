@@ -1,0 +1,15 @@
+<!--
+ * Arquivo: Layout_Main.html
+ * Funcionalidade: Shell semântico da área principal da SPA. O Router substitui
+ * apenas o conteúdo de #spa-root, preservando foco, acessibilidade e layout.
+ * Integrações: Incluído em Index.html; preenchido por Js_Global.html.
+ * Dependências: Css_Global.html.
+ -->
+<main id="main-content" class="app-main-content" tabindex="-1" aria-label="Conteúdo principal">
+  <div id="spa-root" aria-live="polite" aria-busy="false"></div>
+</main>
+<style>
+  .app-main-content { flex: 1 1 auto; min-width: 0; min-height: 0; }
+  .app-main-content:focus-visible { outline: 3px solid rgba(20, 125, 146, .24); outline-offset: -3px; }
+  .app-main-content[aria-busy="true"] { cursor: progress; }
+</style>

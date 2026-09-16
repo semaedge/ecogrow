@@ -1,0 +1,85 @@
+<script>
+  var Js_Flow_Visualizer = {
+    initialized: false,
+
+    init: function () {
+      this.initialized = true;
+      this.clear();
+    },
+
+    clear: function () {
+      document.querySelectorAll('.flow-path.simulated-flow').forEach(function (element) {
+        element.classList.remove('simulated-flow', 'flow-warning', 'blackwater', 'greywater', 'treated');
+        element.removeAttribute('data-flow-volume');
+      });
+    },
+
+    endpointId: function (endpoint) {
+      return String((endpoint && (endpoint.instanceId || endpoint.id)) || '');
+    },
+
+    connectionIndex: function (connection, boardConnections) {
+      var fromId = this.endpointId(connection.from);
+      var toId = this.endpointId(connection.to);
+      return boardConnections.findIndex(function (candidate) {
+        return Js_Flow_Visualizer.endpointId(candidate.from) === fromId &&
+          Js_Flow_Visualizer.endpointId(candidate.to) === toId &&
+          String(candidate.from.output || '') === String(connection.from.output || '') &&
+          String(candidate.to.input || '') === String(connection.to.input || '');
+      });
+    },
+
+    flowClass: function (flowType) {
+      var type = String(flowType || '').toLowerCase();
+      if (type.indexOf('treated') >= 0) return 'treated';
+      if (type.indexOf('blackwater') >= 0) return 'blackwater';
+      if (type.indexOf('greywater') >= 0) return 'greywater';
+      return '';
+    },
+
+    decorate: function (index, flowPath) {
+      if (index < 0) return false;
+      var grid = document.getElementById('game-grid');
+      if (!grid) return false;
+      var element = grid.querySelector('.flow-path[data-connection-index="' + index + '"]');
+      if (!element) return false;
+      var typeClass = this.flowClass(flowPath.flowType);
+      element.classList.add('simulated-flow');
+      if (typeClass) element.classList.add(typeClass);
+      if (Array.isArray(flowPath.issues) && flowPath.issues.length) element.classList.add('flow-warning');
+      var volume = Math.max(0, Number(flowPath.waterVolume) || 0);
+      element.dataset.flowVolume = volume;
+      var description = (flowPath.flowType || 'fluxo') + ' · ' + volume + ' L';
+      if (flowPath.issues && flowPath.issues.length) description += ' · ' + flowPath.issues.join(' ');
+      element.title = description;
+      element.setAttribute('aria-label', description + '. Clique para remover a conexão.');
+      return true;
+    },
+
+    renderFlows: function (boardData, simulationState) {
+      this.clear();
+      var boardConnections = Array.isArray(boardData && boardData.connections) ? boardData.connections : [];
+      var flowPaths = Array.isArray(simulationState && simulationState.flowPaths) ? simulationState.flowPaths : [];
+      var decorated = {};
+      flowPaths.forEach(function (flowPath) {
+        var connections = Array.isArray(flowPath.connections) ? flowPath.connections : [];
+        if (!connections.length && Array.isArray(flowPath.path)) {
+          for (var i = 0; i < flowPath.path.length - 1; i += 1) {
+            var fromId = Js_Flow_Visualizer.endpointId(flowPath.path[i]);
+            var toId = Js_Flow_Visualizer.endpointId(flowPath.path[i + 1]);
+            var fallback = boardConnections.findIndex(function (candidate) {
+              return Js_Flow_Visualizer.endpointId(candidate.from) === fromId && Js_Flow_Visualizer.endpointId(candidate.to) === toId;
+            });
+            if (Js_Flow_Visualizer.decorate(fallback, flowPath)) decorated[fallback] = true;
+          }
+          return;
+        }
+        connections.forEach(function (connection) {
+          var index = Js_Flow_Visualizer.connectionIndex(connection, boardConnections);
+          if (Js_Flow_Visualizer.decorate(index, flowPath)) decorated[index] = true;
+        });
+      });
+      return Object.keys(decorated).length;
+    }
+  };
+</script>

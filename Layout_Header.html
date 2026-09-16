@@ -1,0 +1,39 @@
+<header class="app-header">
+  <a class="brand" href="#dashboard" aria-label="EcoGrow, início">
+    <span class="brand-mark" aria-hidden="true">E</span>
+    <span><strong>EcoGrow</strong><small>Habitat Lab</small></span>
+  </a>
+  <div class="player-status">
+    <span class="system-pill" role="status"><i aria-hidden="true"></i>Sistema online</span>
+    <span id="player-balance" class="balance-pill" aria-live="polite">0 créditos</span>
+    <div class="notification-center">
+      <button id="notification-button" class="notification-button" type="button" aria-label="Abrir notificações" aria-expanded="false">♢<span id="notification-badge" hidden>0</span></button>
+      <section id="notification-panel" class="notification-panel" hidden aria-label="Notificações">
+        <header><strong>Notificações</strong><button id="notification-close" type="button" aria-label="Fechar">×</button></header>
+        <div id="notification-list"><p>Carregando…</p></div>
+      </section>
+    </div>
+    <a href="#profile" class="profile-chip" aria-label="Abrir perfil">
+      <span class="avatar" aria-hidden="true">EG</span>
+      <span id="player-name">Convidado</span>
+    </a>
+    <button id="logout-button" class="btn btn-ghost btn-small" type="button">Sair</button>
+  </div>
+</header>
+<style>
+  .app-header { position: sticky; top: 0; z-index: 200; min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px clamp(18px,3vw,42px); background: rgba(255,255,255,.88); border-bottom: 1px solid rgba(220,231,224,.85); backdrop-filter: blur(16px); }
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text-color); }
+  .brand:hover { color: var(--text-color); }
+  .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px 12px 12px 4px; background: var(--primary-color); color: #fff; font: 800 20px/1 'Manrope'; box-shadow: 0 7px 16px rgba(23,107,69,.2); }
+  .brand strong, .brand small { display: block; }
+  .brand strong { font: 800 17px/1.1 'Manrope'; }
+  .brand small { margin-top: 3px; color: var(--text-muted); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .player-status { display: flex; align-items: center; gap: 10px; }
+  .system-pill, .balance-pill { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 10px; border-radius: 99px; background: var(--surface-alt); color: var(--text-muted); font-size: 12px; font-weight: 700; }
+  .system-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--success-color); box-shadow: 0 0 0 4px rgba(44,154,98,.12); }
+  .profile-chip { display: flex; align-items: center; gap: 8px; padding: 4px 9px 4px 4px; border-radius: 99px; color: var(--text-color); font-weight: 700; transition: background var(--transition); }
+  .notification-center{position:relative}.notification-button{position:relative;width:36px;height:36px;display:none;place-items:center;border:1px solid var(--line);border-radius:50%;background:#fff;color:var(--primary-color);font-size:19px;cursor:pointer}.notification-button span{position:absolute;right:-4px;top:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:99px;background:var(--error-color);color:#fff;font-size:10px;font-weight:800;line-height:18px}.notification-panel{position:absolute;right:0;top:44px;width:min(360px,calc(100vw - 28px));max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow-lg);z-index:500}.notification-panel header{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);background:#fff}.notification-panel header button{border:0;background:transparent;font-size:20px;cursor:pointer}.notification-entry{display:grid;gap:4px;width:100%;padding:13px 16px;border:0;border-bottom:1px solid var(--line);background:#fff;text-align:left;cursor:pointer}.notification-entry.unread{background:var(--primary-soft)}.notification-entry strong{font-size:12px}.notification-entry span,.notification-entry small{color:var(--text-muted);font-size:11px}.notification-empty{padding:24px 16px;color:var(--text-muted);text-align:center;font-size:12px}
+  .profile-chip:hover { background: var(--surface-alt); color: var(--text-color); }
+  .avatar { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #d8eee2; color: var(--primary-strong); font-size: 11px; font-weight: 800; }
+  @media (max-width: 720px) { .system-pill, .profile-chip #player-name { display: none; } .app-header { padding-inline: 14px; } .balance-pill { font-size: 11px; } }
+</style>

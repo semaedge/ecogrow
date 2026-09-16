@@ -1,0 +1,62 @@
+<aside id="module-sidebar" class="app-sidebar" aria-label="Biblioteca de módulos" aria-hidden="true">
+  <div class="sidebar-header">
+    <div>
+      <span class="eyebrow">Biblioteca</span>
+      <h2>Módulos</h2>
+    </div>
+    <button id="close-sidebar" class="sidebar-close" type="button" aria-label="Fechar biblioteca">×</button>
+  </div>
+
+  <label class="module-search">
+    <span aria-hidden="true">⌕</span>
+    <span class="sr-only">Buscar módulos</span>
+    <input inputmode="search" id="module-search-input" type="search" placeholder="Buscar módulo…" autocomplete="off">
+  </label>
+
+  <nav class="sidebar-nav" aria-label="Categorias de módulos">
+    <ul id="module-categories">
+      <li><button class="category-item active" type="button" data-category="all" aria-pressed="true">Todos</button></li>
+      <li><button class="category-item" type="button" data-category="blackwater_input" aria-pressed="false">Água negra</button></li>
+      <li><button class="category-item" type="button" data-category="greywater_input" aria-pressed="false">Água cinza</button></li>
+      <li><button class="category-item" type="button" data-category="treatment" aria-pressed="false">Tratamento</button></li>
+      <li><button class="category-item" type="button" data-category="garden_output" aria-pressed="false">Cultivo</button></li>
+      <li><button class="category-item" type="button" data-category="utility" aria-pressed="false">Apoio</button></li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-tip"><span aria-hidden="true">i</span><p>Arraste para o tabuleiro ou selecione um módulo e toque em uma célula.</p></div>
+  <div id="module-list" class="module-list" aria-live="polite">
+    <div class="module-skeleton" aria-hidden="true"></div><div class="module-skeleton" aria-hidden="true"></div><div class="module-skeleton" aria-hidden="true"></div>
+  </div>
+</aside>
+<div id="sidebar-scrim" class="sidebar-scrim"></div>
+<style>
+  .app-sidebar { display: none; width: var(--sidebar-width); height: 100vh; position: sticky; top: 0; flex: none; padding: 25px 18px 20px; overflow: hidden; flex-direction: column; background: #123d2d; color: #fff; box-shadow: 12px 0 40px rgba(11,54,38,.08); }
+  body[data-view="boardEditor"] .app-sidebar { display: flex; }
+  .sidebar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 19px; padding: 0 5px; }
+  .sidebar-header .eyebrow { color: #82c9a2; }
+  .sidebar-header h2 { margin-top: 4px; font-size: 24px; }
+  .sidebar-close { display: none; width: 36px; height: 36px; border: 0; border-radius: 9px; background: rgba(255,255,255,.08); color: #fff; font-size: 23px; cursor: pointer; }
+  .module-search { display: flex; align-items: center; gap: 8px; height: 43px; padding: 0 12px; border: 1px solid rgba(255,255,255,.11); border-radius: 11px; background: rgba(255,255,255,.07); color: #a9cbbb; }
+  .module-search:focus-within { border-color: #79c59a; background: rgba(255,255,255,.1); }
+  .module-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #fff; }
+  .module-search input::placeholder { color: #96b5a7; }
+  .sidebar-nav ul { display: flex; gap: 6px; margin: 15px 0 16px; padding: 0; overflow-x: auto; list-style: none; scrollbar-width: none; }
+  .sidebar-nav ul::-webkit-scrollbar { display: none; }
+  .category-item { min-height: 32px; padding: 0 10px; border: 1px solid rgba(255,255,255,.1); border-radius: 99px; background: transparent; color: #b6cec3; font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+  .category-item:hover, .category-item.active { border-color: #82c9a2; background: #def5e7; color: #10462f; }
+  .sidebar-tip { display: flex; gap: 9px; margin-bottom: 14px; padding: 10px 11px; border-radius: 10px; background: rgba(104,201,148,.1); color: #bcd4c9; font-size: 11px; line-height: 1.4; }
+  .sidebar-tip span { width: 18px; height: 18px; display: grid; place-items: center; flex: none; border-radius: 50%; background: #6bc391; color: #123d2d; font-weight: 800; }
+  .module-list { flex: 1; overflow-y: auto; padding: 1px 4px 20px 1px; scrollbar-color: rgba(255,255,255,.18) transparent; }
+  .module-skeleton { height: 70px; margin-bottom: 9px; border-radius: 12px; background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06)); background-size: 200% 100%; animation: shimmer 1.3s infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .sidebar-scrim { display: none; }
+  body.sidebar-open { overflow: hidden; }
+  @media (max-width: 860px) {
+    .app-sidebar { display: flex; position: fixed; left: 0; top: 0; z-index: 1200; transform: translateX(-105%); transition: transform var(--transition); }
+    body.sidebar-open .app-sidebar { transform: translateX(0); }
+    .sidebar-close { display: block; }
+    .sidebar-scrim { position: fixed; inset: 0; z-index: 1100; background: rgba(5,28,20,.4); backdrop-filter: blur(2px); }
+    body.sidebar-open .sidebar-scrim { display: block; }
+  }
+</style>

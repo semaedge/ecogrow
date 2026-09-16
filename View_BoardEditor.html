@@ -1,0 +1,61 @@
+<div class="container-fluid board-editor-page">
+  <header class="editor-heading">
+    <div>
+      <span class="eyebrow">Editor de habitat</span>
+      <div class="board-title-row">
+        <input inputmode="text" type="text" id="board-name" class="board-name-input" value="Novo sistema" aria-label="Nome do sistema">
+        <span id="save-status" class="save-status"><i></i>Rascunho local</span>
+      </div>
+    </div>
+    <div class="editor-controls">
+      <input id="import-board-file" type="file" accept="application/json,.json" hidden>
+      <button id="open-sidebar" class="btn btn-secondary mobile-only" type="button" aria-controls="module-sidebar" aria-expanded="false">＋ Módulos</button>
+      <button id="import-board-btn" class="btn btn-ghost" type="button">Importar</button>
+      <button id="export-board-btn" class="btn btn-ghost" type="button" disabled>Exportar</button>
+      <button id="delete-board-btn" class="btn btn-danger" type="button" disabled>Excluir</button>
+      <button id="clear-board-btn" class="btn btn-ghost" type="button">Limpar</button>
+      <button id="save-board-btn" class="btn btn-secondary" type="button">Salvar</button>
+      <button id="run-simulation-btn" class="btn" type="button"><span aria-hidden="true">▶</span>Simular sistema</button>
+    </div>
+  </header>
+
+  <?!= include('GameScene'); ?>
+
+  <div class="editor-safety-note" role="note">
+    <strong>Simulação, não receita:</strong> não monte este sistema com água real. Use o resultado para fazer perguntas e converse com o professor.
+  </div>
+  <div class="editor-start-note" role="note">
+    <strong>Comece aqui:</strong> abra Módulos, posicione um componente e clique em <em>Simular sistema</em>.
+  </div>
+
+  <div class="editor-workspace">
+    <section class="board-stage" aria-label="Tabuleiro de construção">
+      <div class="stage-toolbar">
+        <div class="layer-switcher" aria-label="Selecionar camada">
+          <span>Andar do desenho</span>
+          <button type="button" class="layer-btn active" data-layer="0">Térreo</button>
+          <button type="button" class="layer-btn" data-layer="1">Piso 1</button>
+          <button type="button" class="layer-btn" data-layer="2">Piso 2</button>
+        </div>
+        <div class="board-legend"><span><i class="legend-input"></i>Entrada</span><span><i class="legend-output"></i>Saída</span></div>
+      </div>
+      <div id="game-board-container">
+        <div class="board-empty-hint" id="board-empty-hint"><span>＋</span><strong>Comece seu ecossistema</strong><small>Escolha um módulo na biblioteca e posicione aqui.</small></div>
+        <div id="game-grid" class="game-grid" role="grid" aria-label="Grade do habitat"></div>
+      </div>
+      <div class="stage-footer"><span><b id="module-count">0</b> módulos posicionados</span><span>Toque em um módulo para configurar</span></div>
+    </section>
+
+    <aside class="simulation-panel">
+      <div class="panel-heading"><div><span class="eyebrow">Pistas do modelo</span><h2>O que observar</h2></div><span class="score-preview" aria-label="Índice do modelo">—</span></div>
+      <div class="metric-row"><div><span>Cuidado com a água</span><small>Controle de microrganismos</small></div><strong id="sanitation-score">—</strong></div>
+      <div class="progress-bar-container"><div id="sanitation-progress" class="progress-bar-fill" style="width:0%"></div></div>
+      <div class="metric-row"><div><span>Nutrientes N, P e K</span><small>Alimento para as plantas</small></div><strong id="nutrition-score">—</strong></div>
+      <div class="progress-bar-container"><div id="nutrition-progress" class="progress-bar-fill" style="width:0%"></div></div>
+      <div id="npk-bar-container"></div>
+      <div id="pathogen-warning-container"></div>
+      <div id="simulation-messages" class="diagnostic-empty"><span aria-hidden="true">◎</span><p>O diagnóstico aparece depois da primeira simulação.</p></div>
+      <button id="panel-simulate-btn" class="btn" type="button">Testar minha ideia</button>
+    </aside>
+  </div>
+</div>

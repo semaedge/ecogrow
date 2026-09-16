@@ -1,0 +1,166 @@
+<div id="module-config-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="module-config-title" hidden>
+  <div class="modal-content" tabindex="-1">
+    <button class="close-button" type="button" data-modal-close aria-label="Fechar">×</button>
+    <h2 id="module-config-title">Configurar módulo</h2>
+    <div class="modal-body">
+      <form id="module-config-form" novalidate>
+        <input type="hidden" id="config-module-instance-id" name="instanceId">
+        <div class="form-group"><label for="config-module-name">Nome</label><input inputmode="text" type="text" id="config-module-name" disabled></div>
+        <div class="form-group"><label for="config-module-type">Tipo</label><input inputmode="text" type="text" id="config-module-type" disabled></div>
+        <div class="form-group">
+          <label for="config-module-orientation">Orientação</label>
+          <select id="config-module-orientation" name="orientation">
+            <option value="north">Norte</option><option value="east">Leste</option><option value="south">Sul</option><option value="west">Oeste</option>
+          </select>
+        </div>
+        <div class="form-group" id="config-water-volume-group" hidden>
+          <label for="config-water-volume">Volume de água (L)</label>
+          <input inputmode="decimal" type="number" id="config-water-volume" name="waterVolume" min="0" max="100000" step="0.1">
+        </div>
+        <div class="form-group" id="config-plant-selection-group" hidden>
+          <label for="config-plant-id">Planta associada</label>
+          <select id="config-plant-id" name="plantId"></select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="remove-module-btn" class="btn btn-danger">Remover</button>
+          <button type="submit" class="btn">Salvar alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  var Modal_Module_Config = {
+    modalElement: null,
+    formElement: null,
+    currentModuleInstance: null,
+    onSaveCallback: null,
+    onRemoveCallback: null,
+    previousFocus: null,
+    plantRequestVersion: 0,
+
+    init: function () {
+      if (this.modalElement) return true;
+      this.modalElement = document.getElementById('module-config-modal');
+      this.formElement = document.getElementById('module-config-form');
+      if (!this.modalElement || !this.formElement) return false;
+      Js_Validation_UI.bindForm(this.formElement);
+      this.formElement.addEventListener('submit', this.handleSave.bind(this));
+      this.modalElement.querySelector('[data-modal-close]').addEventListener('click', this.hide.bind(this));
+      document.getElementById('remove-module-btn').addEventListener('click', this.handleRemove.bind(this));
+      this.modalElement.addEventListener('click', function (event) { if (event.target === Modal_Module_Config.modalElement) Modal_Module_Config.hide(); });
+      this.modalElement.addEventListener('keydown', function (event) { if (event.key === 'Escape') Modal_Module_Config.hide(); });
+      return true;
+    },
+
+    show: function (moduleInstance, onSaveCallback, onRemoveCallback) {
+      if (!moduleInstance || !this.init()) return;
+      this.currentModuleInstance = Object.assign({}, moduleInstance);
+      this.onSaveCallback = onSaveCallback;
+      this.onRemoveCallback = onRemoveCallback;
+      this.previousFocus = document.activeElement;
+      this.formElement.reset();
+      this.formElement.querySelector('[type="submit"]').disabled = false;
+      document.getElementById('module-config-title').textContent = 'Configurar ' + (moduleInstance.name || 'módulo');
+      document.getElementById('config-module-instance-id').value = moduleInstance.instanceId || '';
+      document.getElementById('config-module-name').value = moduleInstance.name || '';
+      document.getElementById('config-module-type').value = moduleInstance.type || '';
+      document.getElementById('config-module-orientation').value = moduleInstance.orientation || 'north';
+
+      var isSource = moduleInstance.type === 'greywater_input' || moduleInstance.type === 'blackwater_input';
+      var volumeGroup = document.getElementById('config-water-volume-group');
+      volumeGroup.hidden = !isSource;
+      document.getElementById('config-water-volume').value = isSource && moduleInstance.waterVolume != null ? moduleInstance.waterVolume : '';
+
+      var isGarden = moduleInstance.type === 'garden_output';
+      var plantGroup = document.getElementById('config-plant-selection-group');
+      var plantSelect = document.getElementById('config-plant-id');
+      plantGroup.hidden = !isGarden;
+      plantSelect.required = isGarden;
+      if (isGarden) this.loadPlantOptions(moduleInstance.plantId);
+
+      this.modalElement.hidden = false;
+      this.modalElement.classList.add('is-open');
+      document.body.classList.add('modal-open');
+      this.modalElement.querySelector('.modal-content').focus();
+    },
+
+    hide: function () {
+      if (!this.modalElement || this.modalElement.hidden) return;
+      this.modalElement.hidden = true;
+      this.modalElement.classList.remove('is-open');
+      document.body.classList.remove('modal-open');
+      this.plantRequestVersion += 1;
+      this.currentModuleInstance = null;
+      this.onSaveCallback = null;
+      this.onRemoveCallback = null;
+      if (this.previousFocus && document.body.contains(this.previousFocus)) this.previousFocus.focus();
+      this.previousFocus = null;
+    },
+
+    populatePlantOptions: function (plants, selectedPlantId) {
+      var select = document.getElementById('config-plant-id');
+      if (!select) return;
+      select.innerHTML = '';
+      var prompt = document.createElement('option');
+      prompt.value = '';
+      prompt.textContent = plants.length ? 'Selecione uma planta' : 'Nenhuma planta disponível';
+      select.appendChild(prompt);
+      plants.forEach(function (plant) {
+        var option = document.createElement('option');
+        option.value = plant.id;
+        option.textContent = plant.name || 'Planta';
+        option.selected = String(plant.id) === String(selectedPlantId || '');
+        select.appendChild(option);
+      });
+    },
+
+    loadPlantOptions: function (selectedPlantId) {
+      if (Array.isArray(EcoGrow.State.plants) && EcoGrow.State.plants.length) {
+        this.populatePlantOptions(EcoGrow.State.plants, selectedPlantId);
+        return Promise.resolve(EcoGrow.State.plants);
+      }
+      var version = ++this.plantRequestVersion;
+      var select = document.getElementById('config-plant-id');
+      var submit = this.formElement.querySelector('[type="submit"]');
+      select.innerHTML = '<option value="">Carregando plantas…</option>';
+      select.disabled = true;
+      submit.disabled = true;
+      return EcoGrow.Api.call('plant/list').then(function (data) {
+        if (version !== Modal_Module_Config.plantRequestVersion) return [];
+        EcoGrow.State.plants = Array.isArray(data.plants) ? data.plants : [];
+        Modal_Module_Config.populatePlantOptions(EcoGrow.State.plants, selectedPlantId);
+        select.disabled = false;
+        submit.disabled = EcoGrow.State.plants.length === 0;
+        return EcoGrow.State.plants;
+      }).catch(function (error) {
+        if (version !== Modal_Module_Config.plantRequestVersion) return [];
+        select.innerHTML = '<option value="">Falha ao carregar plantas</option>';
+        EcoGrow.UI.showMessage('Erro ao carregar opções de plantas: ' + error.message, 'error');
+        return [];
+      });
+    },
+
+    handleSave: function (event) {
+      event.preventDefault();
+      if (!this.currentModuleInstance || !Js_Validation_UI.validateForm(this.formElement)) return;
+      var updatedModule = Object.assign({}, this.currentModuleInstance, { orientation: this.formElement.elements.orientation.value });
+      if (updatedModule.type === 'garden_output') updatedModule.plantId = this.formElement.elements.plantId.value;
+      if (updatedModule.type === 'greywater_input' || updatedModule.type === 'blackwater_input') {
+        var volume = this.formElement.elements.waterVolume.value;
+        if (volume !== '') updatedModule.waterVolume = Math.max(0, Number(volume) || 0); else delete updatedModule.waterVolume;
+      }
+      var callback = this.onSaveCallback;
+      this.hide();
+      if (typeof callback === 'function') callback(updatedModule);
+    },
+
+    handleRemove: function () {
+      if (!this.currentModuleInstance || !window.confirm('Remover este módulo e todas as conexões associadas?')) return;
+      var instanceId = this.currentModuleInstance.instanceId;
+      var callback = this.onRemoveCallback;
+      this.hide();
+      if (typeof callback === 'function') callback(instanceId);
+    }
+  };
+</script>

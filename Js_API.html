@@ -1,0 +1,109 @@
+<script>
+  EcoGrow.Api = (function () {
+    var DEFAULT_TIMEOUT_MS = 30000;
+
+    function ApiError(message, status, data, code) {
+      this.name = 'ApiError';
+      this.message = message || 'Erro na API.';
+      this.status = Number(status) || 0;
+      this.data = data === undefined ? null : data;
+      this.code = code || (this.status ? 'HTTP_' + this.status : 'API_ERROR');
+      if (Error.captureStackTrace) Error.captureStackTrace(this, ApiError);
+    }
+    ApiError.prototype = Object.create(Error.prototype);
+    ApiError.prototype.constructor = ApiError;
+
+    function parseEnvelope(response) {
+      var parsed = response;
+      if (typeof response === 'string') {
+        try {
+          parsed = JSON.parse(response);
+        } catch (error) {
+          throw new ApiError('O servidor retornou uma resposta inválida.', 0, null, 'INVALID_JSON');
+        }
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new ApiError('O servidor retornou uma resposta inválida.', 0, null, 'INVALID_RESPONSE');
+      }
+      var status = Number(parsed.status);
+      if (!Number.isFinite(status)) status = parsed.success === false ? 500 : 200;
+      return {
+        ok: parsed.success !== false && status >= 200 && status < 300,
+        status: status,
+        data: parsed.data,
+        message: parsed.message || (status >= 400 ? 'Erro na API.' : '')
+      };
+    }
+
+    function handleExpiredSession(error, route) {
+      if (error.status !== 401 || route.indexOf('auth/') === 0) return;
+      if (window.Js_Auth && typeof Js_Auth.clearSession === 'function') Js_Auth.clearSession();
+      if (EcoGrow.Router && EcoGrow.Router.getLocation().view !== 'login') EcoGrow.Router.navigate('login');
+    }
+
+    function call(route, payload, options) {
+      options = options || {};
+      if (typeof route !== 'string' || !/^[a-z]+\/[A-Za-z]+$/.test(route)) {
+        return Promise.reject(new ApiError('Rota de API inválida.', 0, null, 'INVALID_ROUTE'));
+      }
+
+      var requestPayload = Object.assign({}, payload || {});
+      var token = EcoGrow.State.currentUser && EcoGrow.State.currentUser.token;
+      if (!token && window.Js_Auth && typeof window.Js_Auth.readToken === 'function') {
+        token = window.Js_Auth.readToken();
+      }
+      if (token && !requestPayload.token) requestPayload.token = token;
+      var timeoutMs = Math.max(1000, Number(options.timeoutMs) || DEFAULT_TIMEOUT_MS);
+
+      EcoGrow.UI.showLoading();
+      return new Promise(function (resolve, reject) {
+        var settled = false;
+        var timer = window.setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          reject(new ApiError('A solicitação excedeu o tempo limite.', 0, null, 'TIMEOUT'));
+        }, timeoutMs);
+
+        function finish(callback, value) {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          callback(value);
+        }
+
+        try {
+          google.script.run
+            .withSuccessHandler(function (response) {
+              try {
+                var envelope = parseEnvelope(response);
+                if (envelope.ok) {
+                  finish(resolve, envelope.data);
+                  return;
+                }
+                var apiError = new ApiError(envelope.message, envelope.status, envelope.data);
+                handleExpiredSession(apiError, route);
+                finish(reject, apiError);
+              } catch (error) {
+                finish(reject, error instanceof ApiError ? error : new ApiError(error.message, 0, null, 'PARSE_ERROR'));
+              }
+            })
+            .withFailureHandler(function (error) {
+              finish(reject, new ApiError(
+                error && error.message ? 'Erro de comunicação com o servidor: ' + error.message : 'Erro de comunicação com o servidor.',
+                0,
+                null,
+                'TRANSPORT_ERROR'
+              ));
+            })
+            .handleApiRequest(JSON.stringify({ route: route, payload: requestPayload }));
+        } catch (error) {
+          finish(reject, new ApiError(error.message || 'Não foi possível iniciar a solicitação.', 0, null, 'CLIENT_ERROR'));
+        }
+      }).finally(function () {
+        EcoGrow.UI.hideLoading();
+      });
+    }
+
+    return { call: call, parseEnvelope: parseEnvelope, ApiError: ApiError };
+  }());
+</script>

@@ -1,0 +1,49 @@
+<div class="auth-shell">
+  <section class="auth-intro">
+    <div class="auth-brand" data-brand-logo aria-label="Marca EcoGrow"><span class="brand-mark-fallback">EG</span></div>
+    <span class="eyebrow">EcoGrow Habitat Lab</span>
+    <h1>Projete ciclos que devolvem vida ao sistema.</h1>
+    <p>Um laboratório interativo para aprender saneamento ecológico construindo, testando e melhorando.</p>
+    
+    <!-- Prévia interativa: escolha o primeiro módulo -->
+    <div class="preview-interaction" id="previewInteraction">
+      <span class="preview-label">Experimente antes de entrar</span>
+      <p class="preview-question" id="previewQuestion">Por onde você começaria um sistema de tratamento?</p>
+      <div class="preview-choices" role="group" aria-labelledby="previewQuestion">
+        <button type="button" class="preview-choice" data-choice="water" aria-pressed="false" aria-label="Começar pela captação de água">
+          <i class="material-icons" aria-hidden="true">water_drop</i>
+          <span>Captação</span>
+          <small>Coletar água da chuva</small>
+        </button>
+        <button type="button" class="preview-choice" data-choice="treatment" aria-pressed="false" aria-label="Começar pelo tratamento">
+          <i class="material-icons" aria-hidden="true">science</i>
+          <span>Tratamento</span>
+          <small>Filtrar e limpar</small>
+        </button>
+        <button type="button" class="preview-choice" data-choice="cultivation" aria-pressed="false" aria-label="Começar pelo cultivo">
+          <i class="material-icons" aria-hidden="true">eco</i>
+          <span>Cultivo</span>
+          <small>Nutrir plantas</small>
+        </button>
+      </div>
+      <p class="preview-feedback" id="previewFeedback" role="status" aria-live="polite"></p>
+    </div>
+    
+    <div class="auth-cycle"><span>Água</span><i>→</i><span>Tratamento</span><i>→</i><span>Cultivo</span></div>
+  </section>
+  <section class="auth-card">
+    <span class="eyebrow">Boas-vindas</span>
+    <h2>Entre no seu laboratório</h2>
+    <p>Entre com seu usuário e sua senha para retomar os sistemas que você criou.</p>
+    <form id="login-form" autocomplete="on" aria-describedby="auth-feedback" aria-busy="false">
+      <div class="form-group"><label for="username">Usuário</label><input inputmode="text" type="text" id="username" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" minlength="3" maxlength="32" placeholder="seu.usuario" required autofocus></div>
+      <div class="form-group"><label for="password">Senha</label><div class="password-control"><input inputmode="text" type="password" id="password" name="password" autocomplete="current-password" enterkeyhint="go" minlength="8" maxlength="128" placeholder="Sua senha" required><button class="password-toggle" type="button" data-password-toggle="password" aria-controls="password" aria-pressed="false" aria-label="Mostrar senha"><i class="material-icons" aria-hidden="true">visibility</i></button></div></div>
+      <p class="auth-feedback" id="auth-feedback" role="alert" aria-live="assertive" aria-atomic="true"></p>
+      <button type="submit" class="btn auth-submit">Entrar</button>
+    </form>
+    <p class="auth-privacy-note" role="note"><strong>Uso pedagógico e privacidade:</strong>
+      o progresso é usado pela escola para acompanhamento da aprendizagem. Ao continuar,
+      você confirma ciência desse uso e dos termos de privacidade.</p>
+    <p class="auth-switch">Ainda não participa? <a href="#register">Crie sua conta</a></p>
+  </section>
+</div>

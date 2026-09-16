@@ -1,0 +1,107 @@
+<script>
+  var Js_BoardRender = {
+    gridSize: 58,
+    dimensions: { x: 10, y: 10, z: 3 },
+    activeLayer: 0,
+    boardContainer: null,
+    gameGrid: null,
+
+    init: function () {
+      this.boardContainer = document.getElementById('game-board-container');
+      this.gameGrid = document.getElementById('game-grid');
+      this.gridSize = window.innerWidth < 1120 ? 52 : 58;
+    },
+
+    setLayer: function (layer, boardData) {
+      this.activeLayer = Math.max(0, Math.min(this.dimensions.z - 1, Number(layer) || 0));
+      this.renderBoard(boardData);
+    },
+
+    renderBoard: function (boardData) {
+      if (!this.gameGrid || !document.body.contains(this.gameGrid)) this.init();
+      if (!this.gameGrid) return;
+      boardData = boardData || { modules: [], connections: [] };
+      this.gameGrid.innerHTML = '';
+      this.gameGrid.style.gridTemplateColumns = 'repeat(' + this.dimensions.x + ', ' + this.gridSize + 'px)';
+      this.gameGrid.style.gridTemplateRows = 'repeat(' + this.dimensions.y + ', ' + this.gridSize + 'px)';
+
+      for (var y = 0; y < this.dimensions.y; y++) {
+        for (var x = 0; x < this.dimensions.x; x++) {
+          var cell = window.Component_Cell ? Component_Cell.create(x, y, this.activeLayer) : document.createElement('div');
+          if (!window.Component_Cell) { cell.className = 'grid-cell'; cell.dataset.x = x; cell.dataset.y = y; cell.dataset.z = this.activeLayer; }
+          this.gameGrid.appendChild(cell);
+        }
+      }
+
+      var visibleModules = (boardData.modules || []).filter(function (module) { return Number(module.z || 0) === Js_BoardRender.activeLayer; });
+      visibleModules.forEach(function (module) { Js_BoardRender.renderModule(module); });
+      (boardData.connections || []).forEach(function (connection, index) { Js_BoardRender.renderConnection(connection, boardData.modules || [], index); });
+
+      var emptyHint = document.getElementById('board-empty-hint');
+      if (emptyHint) emptyHint.classList.toggle('hidden', visibleModules.length > 0);
+      var count = document.getElementById('module-count');
+      if (count) count.textContent = (boardData.modules || []).length;
+    },
+
+    renderModule: function (module) {
+      var element = document.createElement('div');
+      element.className = 'module-item new';
+      element.dataset.instanceId = module.instanceId;
+      element.dataset.moduleId = module.id;
+      element.dataset.type = module.type || '';
+      element.style.left = (module.x * this.gridSize) + 'px';
+      element.style.top = (module.y * this.gridSize) + 'px';
+      element.textContent = module.name;
+      element.setAttribute('role', 'button');
+      element.setAttribute('tabindex', '0');
+      element.setAttribute('aria-label', module.name + '. Toque para configurar.');
+      this.gameGrid.appendChild(element);
+
+      var definition = EcoGrow.State.modules.find(function (item) { return String(item.id) === String(module.id); });
+      if (!definition) return;
+      (definition.inputs || []).forEach(function (portName, index, ports) { element.appendChild(Js_BoardRender.createPort('input', portName, module.instanceId || module.id, index, ports.length)); });
+      (definition.outputs || []).forEach(function (portName, index, ports) { element.appendChild(Js_BoardRender.createPort('output', portName, module.instanceId || module.id, index, ports.length)); });
+    },
+
+    createPort: function (type, portName, instanceId, index, total) {
+      var port = document.createElement('span');
+      port.className = 'module-port ' + type;
+      port.dataset.direction = type;
+      port.dataset.portName = portName;
+      port.dataset.instanceId = instanceId;
+      port.style.left = (((index + 1) / (total + 1)) * 100) + '%';
+      port.setAttribute('role', 'button');
+      port.setAttribute('tabindex', '0');
+      port.setAttribute('aria-label', (type === 'output' ? 'Saída ' : 'Entrada ') + portName);
+      port.title = (type === 'output' ? 'Saída: ' : 'Entrada: ') + portName;
+      return port;
+    },
+
+    renderConnection: function (connection, modules, connectionIndex) {
+      var fromModule = modules.find(function (m) { return m.instanceId === connection.from.id; });
+      var toModule = modules.find(function (m) { return m.instanceId === connection.to.id; });
+      if (!fromModule || !toModule || Number(fromModule.z || 0) !== this.activeLayer || Number(toModule.z || 0) !== this.activeLayer) return;
+      var startX = fromModule.x * this.gridSize + this.gridSize / 2;
+      var startY = fromModule.y * this.gridSize + this.gridSize / 2;
+      var endX = toModule.x * this.gridSize + this.gridSize / 2;
+      var endY = toModule.y * this.gridSize + this.gridSize / 2;
+      var path = document.createElement('div');
+      path.className = 'flow-path';
+      path.dataset.connectionIndex = connectionIndex;
+      path.setAttribute('role', 'button');
+      path.setAttribute('tabindex', '0');
+      path.setAttribute('aria-label', 'Conexão ' + String(connection.from.output || '') + '. Clique para remover.');
+      path.title = String(connection.from.output || '') + ' → ' + String(connection.to.input || '') + ' (clique para remover)';
+      var output = String(connection.from.output || '');
+      if (output.indexOf('blackwater') >= 0) path.classList.add('blackwater');
+      else if (output.indexOf('greywater') >= 0) path.classList.add('greywater');
+      else if (output.indexOf('treated') >= 0) path.classList.add('treated');
+      path.style.width = Math.hypot(endX - startX, endY - startY) + 'px';
+      path.style.left = startX + 'px';
+      path.style.top = startY + 'px';
+      path.style.transformOrigin = '0 0';
+      path.style.transform = 'rotate(' + (Math.atan2(endY - startY, endX - startX) * 180 / Math.PI) + 'deg)';
+      this.gameGrid.appendChild(path);
+    }
+  };
+</script>

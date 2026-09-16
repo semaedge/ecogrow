@@ -1,0 +1,427 @@
+<div class="container dashboard-page">
+  <section class="dashboard-hero">
+    <div>
+      <span class="eyebrow">Seu laboratório sustentável</span>
+      <h1 class="page-title">Olá, <span id="dashboard-username">explorador</span>.</h1>
+      <p class="page-subtitle">Transforme água, nutrientes e boas escolhas em um habitat mais circular.</p>
+      <div class="hero-actions">
+        <button class="btn" type="button" onclick="EcoGrow.Router.navigate('boardEditor')"><span aria-hidden="true">＋</span>Criar novo sistema</button>
+        <a class="btn btn-secondary" href="#help">Ver guia rápido</a>
+      </div>
+    </div>
+    <div class="hero-visual" aria-label="Ciclo EcoGrow: captar, tratar e cultivar">
+      <div class="cycle-center"><strong>Eco</strong><span>ciclo</span></div>
+      <span class="cycle-node node-water"><b>01</b>Captar</span>
+      <span class="cycle-node node-treat"><b>02</b>Tratar</span>
+      <span class="cycle-node node-grow"><b>03</b>Cultivar</span>
+    </div>
+  </section>
+
+  <div id="app-messages"></div>
+
+  <section class="learning-banner" aria-labelledby="workflow-title">
+    <span id="workflow-progress" class="learning-index" role="status" aria-label="Progresso da jornada">20%</span>
+    <div><span class="eyebrow">Próximo passo recomendado</span><h2 id="workflow-title">Seu primeiro ecociclo.</h2><p id="workflow-copy">Monte, simule e compare um sistema básico de reúso de água.</p><div id="workflow-review-fields" hidden><label for="workflow-reflection">O que o diagnóstico mostrou?</label><textarea id="workflow-reflection" rows="2" maxlength="420"></textarea><label for="workflow-next-change">Qual mudança você testaria agora?</label><textarea id="workflow-next-change" rows="2" maxlength="240"></textarea></div></div>
+    <button id="workflow-action-btn" class="btn btn-secondary" type="button">Começar jornada</button>
+  </section>
+
+  <section class="experience-panel" id="experience-panel" aria-labelledby="exp-title" hidden>
+    <header class="exp-header">
+      <div class="exp-meta">
+        <span id="exp-phase-badge" class="exp-phase-badge">Fase 1 · Exploração</span>
+        <span id="exp-chapter-counter" class="exp-chapter-counter">Capítulo 1 / 6</span>
+      </div>
+      <h2 id="exp-title" class="exp-title">—</h2>
+      <p id="exp-situation" class="exp-situation"></p>
+      <div id="exp-constraint" class="exp-constraint" hidden></div>
+    </header>
+
+    <div id="exp-state-bar" class="exp-state-bar" aria-label="Estado atual do grupo">
+      <div class="exp-meter">
+        <span class="exp-meter-label">Conhecimento</span>
+        <div class="exp-meter-track"><div id="exp-bar-k" class="exp-meter-fill fill-k" style="width:50%"></div></div>
+        <span id="exp-val-k" class="exp-meter-val">5</span>
+      </div>
+      <div class="exp-meter">
+        <span class="exp-meter-label">Cooperação</span>
+        <div class="exp-meter-track"><div id="exp-bar-c" class="exp-meter-fill fill-c" style="width:50%"></div></div>
+        <span id="exp-val-c" class="exp-meter-val">5</span>
+      </div>
+      <div class="exp-meter">
+        <span class="exp-meter-label">Pressão</span>
+        <div class="exp-meter-track"><div id="exp-bar-p" class="exp-meter-fill fill-p" style="width:20%"></div></div>
+        <span id="exp-val-p" class="exp-meter-val">2</span>
+      </div>
+    </div>
+
+    <div id="exp-stage-briefing" class="exp-stage">
+      <p class="exp-stage-label">📖 Leia a situação acima e prepare sua previsão.</p>
+      <button class="btn" type="button" id="exp-btn-start-prediction">Fazer previsão →</button>
+    </div>
+
+    <div id="exp-stage-prediction" class="exp-stage" hidden>
+      <label for="exp-prediction-text" class="exp-stage-label">🔮 Previsão</label>
+      <p id="exp-prediction-prompt" class="exp-hint"></p>
+      <textarea id="exp-prediction-text" rows="3" maxlength="420" placeholder="O que você prevê que vai acontecer com a horta após a decisão do grupo?"></textarea>
+      <button class="btn" type="button" id="exp-btn-send-prediction">Registrar previsão →</button>
+    </div>
+
+    <div id="exp-stage-decision" class="exp-stage" hidden>
+      <p class="exp-stage-label">⚖️ Decisão do grupo</p>
+      <div id="exp-decisions" class="exp-decisions" role="group" aria-label="Opções de decisão"></div>
+    </div>
+
+    <div id="exp-stage-observation" class="exp-stage" hidden>
+      <div id="exp-consequence" class="exp-consequence"></div>
+      <label for="exp-observation-text" class="exp-stage-label">👁️ Observação</label>
+      <p id="exp-observation-prompt" class="exp-hint">O que mudou depois da escolha? Use um dado, sinal ou acontecimento do jogo.</p>
+      <textarea id="exp-observation-text" rows="3" maxlength="420" placeholder="Registre o que você observou após a decisão…"></textarea>
+      <button class="btn" type="button" id="exp-btn-send-observation">Registrar observação →</button>
+    </div>
+
+    <div id="exp-stage-reflection" class="exp-stage" hidden>
+      <label for="exp-reflection-text" class="exp-stage-label">🔄 Reflexão</label>
+      <p id="exp-reflection-prompt" class="exp-hint">O que o grupo manteria ou mudaria na próxima rodada?</p>
+      <textarea id="exp-reflection-text" rows="3" maxlength="420" placeholder="Registre sua reflexão…"></textarea>
+      <button class="btn" type="button" id="exp-btn-send-reflection">Avançar →</button>
+    </div>
+
+    <div id="exp-stage-complete" class="exp-stage exp-endgame" hidden>
+      <span id="exp-endgame-emoji" class="exp-endgame-emoji">🌱</span>
+      <h3 id="exp-endgame-title">Desfecho</h3>
+      <p id="exp-endgame-summary"></p>
+      <p id="exp-endgame-recommendation" class="exp-hint"></p>
+      <button class="btn btn-secondary" type="button" id="exp-btn-restart">Jogar novamente</button>
+    </div>
+  </section>
+
+  <section class="stats-grid" aria-label="Resumo do progresso">
+    <article class="stat-card"><span class="stat-icon green" aria-hidden="true">▦</span><div><small>Sistemas salvos</small><strong id="total-boards">—</strong><span>projetos ativos</span></div></article>
+    <article class="stat-card"><span class="stat-icon blue" aria-hidden="true">◎</span><div><small>Índice médio do modelo</small><strong id="average-score">—</strong><span>não é nota</span></div></article>
+    <article class="stat-card"><span class="stat-icon amber" aria-hidden="true">◇</span><div><small>Créditos</small><strong id="dashboard-balance">—</strong><span id="economy-last-event">economia circular</span></div></article>
+    <article class="stat-card"><span class="stat-icon green" aria-hidden="true">♢</span><div><small>Alertas novos</small><strong id="dashboard-unread">—</strong><span>notificações</span></div></article>
+  </section>
+
+  <div class="dashboard-columns">
+    <section>
+      <div class="section-heading"><div><h2>Meus sistemas</h2><p>Continue de onde parou ou comece um novo ciclo.</p></div><button class="btn btn-secondary btn-small" type="button" onclick="EcoGrow.Router.navigate('boardEditor')">Novo projeto</button></div>
+      <div id="active-boards-list" class="project-list"><div class="list-skeleton"></div><div class="list-skeleton"></div></div>
+    </section>
+    <aside class="activity-panel">
+      <div class="section-heading"><div><h2>Atividade recente</h2><p>Suas últimas simulações.</p></div></div>
+      <ul id="latest-simulations-list" class="activity-list"><li class="list-skeleton"></li><li class="list-skeleton"></li></ul>
+      <a class="text-link" href="#reports">Ver todos os resultados <span aria-hidden="true">→</span></a>
+    </aside>
+  </div>
+
+  <section class="community-panel" aria-labelledby="community-title">
+    <div class="section-heading"><div><span class="eyebrow">Turma</span><h2 id="community-title">Soluções anônimas</h2><p>Observe diferentes tentativas sem transformar o número em nota ou rótulo.</p></div><div id="current-player-ranking" class="current-ranking">Carregando tentativas…</div></div>
+    <div id="rankingVizinhanca"></div>
+    <ol id="player-leaderboard" class="player-leaderboard"><li class="list-skeleton"></li><li class="list-skeleton"></li></ol>
+  </section>
+
+</div>
+<style>
+  .dashboard-page { display: grid; gap: 28px; }
+  .dashboard-hero { min-height: 285px; display: grid; grid-template-columns: minmax(0,1.25fr) minmax(300px,.75fr); align-items: center; gap: 32px; overflow: hidden; padding: clamp(27px,5vw,54px); border-radius: var(--radius-lg); background: linear-gradient(120deg,#e5f4eb 0%,#f5faf7 53%,#d7eef0 100%); border: 1px solid #d5e8dc; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 25px; }
+  .hero-visual { position: relative; width: 270px; height: 210px; justify-self: center; }
+  .hero-visual::before, .hero-visual::after { content: ''; position: absolute; border: 1px dashed rgba(23,107,69,.25); border-radius: 50%; inset: 4px 34px; transform: rotate(-10deg); }
+  .hero-visual::after { inset: 27px 10px; transform: rotate(29deg); }
+  .cycle-center { position: absolute; left: 50%; top: 50%; z-index: 2; width: 92px; height: 92px; display: grid; place-content: center; transform: translate(-50%,-50%); border: 9px solid rgba(255,255,255,.66); border-radius: 50%; background: var(--primary-color); color: #fff; text-align: center; box-shadow: var(--shadow-md); }
+  .cycle-center strong, .cycle-center span { display: block; line-height: 1; }
+  .cycle-center strong { font: 800 23px 'Manrope'; }.cycle-center span{font-size:12px;opacity:.8}
+  .cycle-node { position: absolute; z-index: 3; min-width: 94px; padding: 9px 12px; border: 1px solid rgba(255,255,255,.8); border-radius: 12px; background: rgba(255,255,255,.85); color: var(--dark-gray); box-shadow: var(--shadow-sm); font-size: 12px; font-weight: 700; backdrop-filter: blur(8px); }
+  .cycle-node b { display: block; color: var(--secondary-color); font-size: 9px; letter-spacing: .1em; }
+  .node-water { left: 0; top: 10px; }.node-treat{right:0;top:30px}.node-grow{right:38px;bottom:0}
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+  .stat-card { display: flex; align-items: center; gap: 14px; padding: 19px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-sm); }
+  .stat-icon { width: 46px; height: 46px; display: grid; place-items: center; flex: none; border-radius: 13px; font-size: 21px; }.stat-icon.green{background:#e3f3ea;color:#208150}.stat-icon.blue{background:#e2f2f5;color:#147d92}.stat-icon.amber{background:#fff1dc;color:#b8791c}
+  .stat-card small,.stat-card span{display:block;color:var(--text-muted);font-size:11px}.stat-card strong{display:inline-block;margin-right:6px;font:800 25px 'Manrope'}
+  .dashboard-columns { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(290px,.6fr); gap: 28px; }
+  .project-list, .activity-panel { border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-sm); }
+  .project-row { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 15px 17px; border-bottom: 1px solid var(--line); }.project-row:last-child{border-bottom:0}
+  .project-symbol { width:42px;height:42px;display:grid;place-items:center;border-radius:11px;background:var(--primary-soft);color:var(--primary-color);font-weight:800}
+  .project-copy strong,.project-copy small{display:block}.project-copy small{margin-top:2px;color:var(--text-muted);font-size:11px}
+  .activity-panel { padding: 20px; }.activity-list{padding:0;list-style:none}.activity-list li{position:relative;padding:4px 0 17px 20px;margin-bottom:4px;border-left:1px solid var(--line)}.activity-list li::before{content:'';position:absolute;left:-4px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--secondary-color);box-shadow:0 0 0 4px #e6f3f5}.activity-list strong,.activity-list small{display:block}.activity-list small{color:var(--text-muted);font-size:11px}.activity-score{color:var(--primary-color);font-weight:800}
+  .text-link{display:inline-flex;gap:6px;margin-top:4px;font-size:12px;font-weight:800}.list-skeleton{height:58px;margin:10px;border-radius:10px;background:linear-gradient(90deg,#edf3ef,#f7faf8,#edf3ef);background-size:200% 100%;animation:shimmer 1.3s infinite}
+  .community-panel{padding:22px;border:1px solid var(--line);border-radius:var(--radius-md);background:#fff;box-shadow:var(--shadow-sm)}.current-ranking{padding:9px 12px;border-radius:10px;background:var(--primary-soft);color:var(--primary-color);font-size:12px;font-weight:800}.player-leaderboard{display:grid;gap:7px;margin-top:17px;padding:0;list-style:none;counter-reset:ranking}.ranking-row{display:grid;grid-template-columns:35px minmax(0,1fr) repeat(3,minmax(70px,auto));align-items:center;gap:12px;padding:11px 13px;border-radius:10px;background:var(--surface-alt)}.ranking-row.current{box-shadow:inset 3px 0 var(--primary-color);background:var(--primary-soft)}.ranking-position{color:var(--text-muted);font-weight:800}.ranking-player strong,.ranking-player small{display:block}.ranking-player small,.ranking-metric small{color:var(--text-muted);font-size:9px}.ranking-metric{text-align:right}.ranking-metric strong{display:block;font-size:13px}.trend-up{color:var(--success-color)}.trend-down{color:var(--error-color)}
+  .learning-banner { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 22px; padding: 24px 28px; border-radius: var(--radius-md); background: #163f31; color: #fff; }
+  .learning-banner .eyebrow{color:#83cea6}.learning-banner h2{margin:4px 0 6px;font-size:20px}.learning-banner p{max-width:680px;color:#bdd0c7;font-size:13px}.learning-index{font:800 38px 'Manrope';color:rgba(255,255,255,.13)}
+  /* ── Painel de Experiência ─────────────────────────────────────────────── */
+  .experience-panel{padding:26px;border:2px solid #2e7d5b;border-radius:var(--radius-md);background:#f5faf7;box-shadow:var(--shadow-sm)}
+  .exp-header{margin-bottom:18px}
+  .exp-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .exp-phase-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font:700 11px system-ui;letter-spacing:.04em;text-transform:uppercase}
+  .exp-phase-badge[data-phase="1"]{background:#e3f3ea;color:#1a6e45}
+  .exp-phase-badge[data-phase="2"]{background:#fff3cd;color:#8a6200}
+  .exp-phase-badge[data-phase="3"]{background:#fde8e8;color:#9b1c1c}
+  .exp-chapter-counter{font-size:12px;color:var(--text-muted);font-weight:600}
+  .exp-title{margin:0 0 8px;font-size:20px;color:#163f31}
+  .exp-situation{margin:0;color:var(--dark-gray);font-size:14px;line-height:1.6;max-width:780px}
+  .exp-constraint{margin-top:10px;padding:9px 13px;border-left:3px solid #d97706;border-radius:4px;background:#fffbeb;color:#7c5100;font-size:13px;font-weight:600}
+  .exp-state-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0;padding:16px;border-radius:10px;background:#fff;border:1px solid var(--line)}
+  .exp-meter{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:4px 8px;align-items:center}
+  .exp-meter-label{font-size:11px;color:var(--text-muted);font-weight:700;grid-column:1}
+  .exp-meter-val{font:800 16px 'Manrope';grid-row:2;grid-column:2;text-align:right}
+  .exp-meter-track{grid-column:1;grid-row:2;height:8px;border-radius:4px;background:#eee;overflow:hidden}
+  .exp-meter-fill{height:100%;border-radius:4px;transition:width .4s ease}
+  .fill-k{background:#2e7d5b}.fill-c{background:#1565c0}.fill-p{background:#c62828}
+  .exp-stage{margin-top:16px}
+  .exp-stage-label{display:block;font-weight:700;font-size:13px;margin-bottom:8px;color:#163f31}
+  .exp-hint{font-size:12px;color:var(--text-muted);margin:0 0 8px}
+  .exp-decisions{display:grid;gap:10px}
+  .exp-decision-btn{width:100%;padding:13px 16px;border:2px solid #d0e8db;border-radius:10px;background:#fff;color:#163f31;font:600 13px system-ui;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+  .exp-decision-btn:hover{border-color:#2e7d5b;background:#f0faf4}
+  .exp-decision-btn:focus-visible{outline:3px solid #2e7d5b;outline-offset:2px}
+  .exp-consequence{padding:12px 15px;border-radius:8px;background:#e8f5e9;border-left:3px solid #2e7d5b;margin-bottom:14px;font-size:13px;color:#1a4731}
+  .exp-endgame{text-align:center;padding:28px 20px}
+  .exp-endgame-emoji{display:block;font-size:48px;margin-bottom:12px}
+  .exp-endgame h3{margin:0 0 12px;font-size:22px;color:#163f31}
+  .exp-endgame p{max-width:560px;margin:0 auto 10px;font-size:14px;line-height:1.6}
+  .exp-stage textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:14px system-ui;resize:vertical;margin-bottom:10px}
+  @media(max-width:640px){.exp-state-bar{grid-template-columns:1fr}}
+  @media(max-width:1000px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:900px){.dashboard-hero{grid-template-columns:1fr}.hero-visual{display:none}.dashboard-columns{grid-template-columns:1fr}}
+  @media(max-width:640px){.stats-grid{grid-template-columns:1fr}.dashboard-hero{min-height:auto;padding:27px 22px}.learning-banner{grid-template-columns:1fr}.learning-index{display:none}.learning-banner .btn{justify-self:start}.project-row{grid-template-columns:38px minmax(0,1fr)}.project-row .btn{grid-column:2;justify-self:start}.community-panel .section-heading{align-items:flex-start;flex-direction:column}.ranking-row{grid-template-columns:28px minmax(0,1fr) auto}.ranking-metric:nth-last-child(-n+2){display:none}}
+</style>
+<script>
+(function () {
+  var Exp = {
+    workflow: null,
+    schoolYear: 3,
+
+    init: function () {
+      var panel = document.getElementById('experience-panel');
+      if (!panel) return;
+      panel.hidden = false;
+      this._bind();
+      this._startExperience(function (r) { Exp._handleResponse(r); }, function (error) {
+        panel.hidden = true;
+        Exp._showMessage(error && error.message ? error.message : 'A experiência está temporariamente indisponível.', 'error');
+      });
+    },
+
+    _offlineWorkflow: function () {
+      return { data: { stage: 'briefing', chapterId: 'mapear-fluxo',
+        briefing: { title: 'A água que conta uma história', situation: 'A horta cresceu de modo desigual.',
+          phase: 1, phaseLabel: 'Exploração', constraint: null, totalChapters: 6, order: 1,
+          decisions: [{ id: 'medir', label: 'Medir o fluxo antes de alterar qualquer módulo' }, { id: 'ampliar', label: 'Ampliar todo o fluxo imediatamente' }],
+          cycle: { prediction: 'Registre sua previsão e a evidência que pretende observar.', revision: 'O que o grupo manteria ou mudaria?' } },
+        state: { chapter: 1, knowledge: 5, cooperation: 5, pressure: 2 }, complete: false } };
+    },
+
+    _startExperience: function (onSuccess, onFailure) {
+      var run = window.google && google.script && google.script.run;
+      if (run && typeof run.getExperienceBasicWorkflow === 'function') {
+        run.withSuccessHandler(onSuccess).withFailureHandler(onFailure)
+          .getExperienceBasicWorkflow(Exp.schoolYear);
+        return;
+      }
+      // O preview local mantém o backend em memória no mesmo documento, mas o
+      // shim não cria proxies para funções que não começam com api_.
+      if (typeof window.getExperienceBasicWorkflow === 'function') {
+        try { onSuccess(window.getExperienceBasicWorkflow(Exp.schoolYear)); } catch (error) { onFailure(error); }
+        return;
+      }
+      onSuccess(this._offlineWorkflow());
+    },
+
+    _handleResponse: function (r) {
+      if (r && r.success === false) {
+        this._showMessage(r.error || 'Revise os dados antes de avançar.', 'error');
+        return false;
+      }
+      if (r && r.needsReview) {
+        this._showMessage(r.message || 'Revise antes de avançar.', 'warning');
+        return false;
+      }
+      this._clearMessage();
+      this._render(r && r.data ? r : { data: r });
+      return true;
+    },
+
+    _showMessage: function (message, type) {
+      var msg = document.getElementById('app-messages');
+      if (!msg) return;
+      var text = message && message.message ? message.message : message;
+      msg.textContent = String(text || 'Não foi possível avançar.');
+      msg.className = 'alert alert-' + (type || 'error');
+    },
+
+    _clearMessage: function () {
+      var msg = document.getElementById('app-messages');
+      if (msg) { msg.textContent = ''; msg.className = ''; }
+    },
+
+    _bind: function () {
+      var self = this;
+      function on(id, fn) { var el = document.getElementById(id); if (el) el.addEventListener('click', fn); }
+      on('exp-btn-start-prediction', function () { self._advance({}); });
+      on('exp-btn-send-prediction',  function () { self._advance({ text: (document.getElementById('exp-prediction-text') || {}).value }); });
+      on('exp-btn-send-observation', function () { self._advance({ text: (document.getElementById('exp-observation-text') || {}).value }); });
+      on('exp-btn-send-reflection',  function () { self._advance({ text: (document.getElementById('exp-reflection-text') || {}).value }); });
+      on('exp-btn-restart', function () {
+        self._startExperience(function (r) { Exp._handleResponse(r); }, function (error) {
+          self._showMessage(error && error.message ? error.message : 'Não foi possível reiniciar.', 'error');
+        });
+      });
+    },
+
+    _advance: function (payload) {
+      var self = this;
+      if (!this.workflow) return;
+      var run = window.google && google.script && google.script.run;
+      if (run && typeof run.advanceExperienceBasicWorkflow === 'function') {
+        run.withSuccessHandler(function (r) { self._handleResponse(r); })
+          .withFailureHandler(function (e) {
+            self._showMessage(e && e.message ? e.message : 'Erro ao avançar.', 'error');
+          })
+          .advanceExperienceBasicWorkflow(self.workflow, payload, self.schoolYear);
+        return;
+      }
+      if (typeof window.advanceExperienceBasicWorkflow === 'function') {
+        try { self._handleResponse(window.advanceExperienceBasicWorkflow(self.workflow, payload, self.schoolYear)); }
+        catch (error) { self._showMessage(error && error.message ? error.message : 'Erro ao avançar.', 'error'); }
+        return;
+      }
+      self._showMessage('A experiência está indisponível neste modo de pré-visualização.', 'error');
+    },
+
+    _render: function (resp) {
+      var d = (resp && resp.data) ? resp.data : resp;
+      if (!d) return;
+      this.workflow = resp;
+      var b     = d.briefing || {};
+      var state = d.state   || {};
+      var stage = d.stage   || 'briefing';
+
+      // Header
+      this._setText('exp-title', b.title || '');
+      this._setText('exp-situation', b.situation || '');
+      // Phase badge
+      var badge = document.getElementById('exp-phase-badge');
+      if (badge) { badge.textContent = 'Fase ' + (b.phase || 1) + ' · ' + (b.phaseLabel || 'Exploração'); badge.dataset.phase = b.phase || 1; }
+      // Chapter counter
+      var order = (d.state && d.state.chapter) ? d.state.chapter : 1;
+      this._setText('exp-chapter-counter', 'Capítulo ' + order + ' / ' + (b.totalChapters || 6));
+      // Constraint
+      var constraint = document.getElementById('exp-constraint');
+      if (constraint) { if (b.constraint) { constraint.textContent = '⚠ ' + b.constraint; constraint.hidden = false; } else { constraint.hidden = true; } }
+      // State bars
+      this._setBar('k', state.knowledge   || 5);
+      this._setBar('c', state.cooperation || 5);
+      this._setBar('p', state.pressure    || 2);
+      // Stages
+      var stages = ['briefing','prediction','decision','observation','reflection','complete'];
+      stages.forEach(function (s) {
+        var el = document.getElementById('exp-stage-' + s);
+        if (el) el.hidden = (s !== stage);
+      });
+      // Decisions
+      if (stage === 'decision' && b.decisions) { this._renderDecisions(b.decisions, d.chapterId); }
+      // Consequence after decision
+      if (stage === 'observation' && d.lastResult) {
+        this._setText('exp-consequence', d.lastResult.consequence || '');
+        var prompt = b.cycle && b.cycle.observation ? b.cycle.observation : '';
+        this._setText('exp-observation-prompt', prompt);
+      }
+      // Prediction prompt
+      if (stage === 'prediction') {
+        this._setText('exp-prediction-prompt', (b.cycle && b.cycle.prediction) || '');
+        var ptxt = document.getElementById('exp-prediction-text'); if (ptxt) ptxt.value = d.prediction || '';
+      }
+      // Reflection prompt
+      if (stage === 'reflection') {
+        this._setText('exp-reflection-prompt', (b.cycle && b.cycle.revision) || '');
+        var rtxt = document.getElementById('exp-reflection-text'); if (rtxt) rtxt.value = d.reflection || '';
+      }
+      // Endgame
+      if (stage === 'complete' && d.endgame) {
+        var eg = d.endgame;
+        var emoji = { equilibrado: '🌱', fragmentado: '🌿', sobrecarga: '⚠️' };
+        this._setText('exp-endgame-emoji', emoji[eg.route] || '🌱');
+        this._setText('exp-endgame-title', eg.title || 'Desfecho');
+        this._setText('exp-endgame-summary', eg.summary || '');
+        this._setText('exp-endgame-recommendation', eg.recommendation || '');
+      }
+    },
+
+    _renderDecisions: function (decisions, chapterId) {
+      var container = document.getElementById('exp-decisions');
+      if (!container) return;
+      container.innerHTML = '';
+      decisions.forEach(function (dec) {
+        var btn = document.createElement('button');
+        btn.className = 'exp-decision-btn';
+        btn.type = 'button';
+        btn.textContent = dec.label;
+        btn.addEventListener('click', function () {
+          Exp._advance({ decisionId: dec.id });
+        });
+        container.appendChild(btn);
+      });
+    },
+
+    _setBar: function (key, value) {
+      var bar = document.getElementById('exp-bar-' + key);
+      var val = document.getElementById('exp-val-' + key);
+      if (bar) bar.style.width = (value * 10) + '%';
+      if (val) val.textContent = value;
+    },
+
+    _setText: function (id, text) {
+      var el = document.getElementById(id); if (el) el.textContent = text;
+    }
+  };
+
+  // Integração com o ciclo de vida do dashboard
+  if (window.EcoGrow && EcoGrow.UI) {
+    var _orig = window.Js_Dashboard && Js_Dashboard.init ? Js_Dashboard.init.bind(Js_Dashboard) : null;
+    if (typeof Js_Dashboard !== 'undefined' && Js_Dashboard.init) {
+      var origInit = Js_Dashboard.init.bind(Js_Dashboard);
+      Js_Dashboard.init = function () { origInit(); Exp.init(); };
+    } else {
+      document.addEventListener('DOMContentLoaded', function () { Exp.init(); });
+    }
+  } else {
+    document.addEventListener('DOMContentLoaded', function () { Exp.init(); });
+  }
+  window.EcoGrow_Experience = Exp;
+
+  // ── Suporte a teclado — Eco Grow Dashboard ─────────────────────────
+  document.addEventListener('keydown', function (event) {
+    if (['TEXTAREA', 'INPUT', 'SELECT'].indexOf(document.activeElement ? document.activeElement.tagName : '') !== -1) return;
+    var key = event.key;
+    if (key === 'Escape') {
+      var panel = document.getElementById('experience-panel');
+      if (panel && panel.style.display !== 'none' && panel.offsetParent !== null) {
+        event.preventDefault();
+        panel.style.display = 'none';
+        return;
+      }
+    }
+    // Teclas 1–3 para decisões da horta
+    if (key >= '1' && key <= '3' && !event.ctrlKey && !event.altKey) {
+      var idx = parseInt(key, 10);
+      var decBtns = Array.prototype.filter.call(
+        document.querySelectorAll('#exp-decisions button, .exp-decision-btn'),
+        function(el) { return el.offsetParent !== null && !el.disabled; }
+      );
+      if (decBtns[idx - 1]) { event.preventDefault(); decBtns[idx - 1].click(); return; }
+    }
+    // Setas para navegação entre decisões
+    if (key === 'ArrowDown' || key === 'ArrowRight') {
+      var allBtns = Array.prototype.filter.call(document.querySelectorAll('#exp-decisions button, .exp-decision-btn'), function(el) { return el.offsetParent !== null && !el.disabled; });
+      var cur = allBtns.indexOf(document.activeElement);
+      if (cur >= 0 && cur < allBtns.length - 1) { event.preventDefault(); allBtns[cur + 1].focus(); }
+      return;
+    }
+    if (key === 'ArrowUp' || key === 'ArrowLeft') {
+      var allBtns2 = Array.prototype.filter.call(document.querySelectorAll('#exp-decisions button, .exp-decision-btn'), function(el) { return el.offsetParent !== null && !el.disabled; });
+      var cur2 = allBtns2.indexOf(document.activeElement);
+      if (cur2 > 0) { event.preventDefault(); allBtns2[cur2 - 1].focus(); }
+    }
+  });
+})();
+</script>

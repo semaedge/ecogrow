@@ -1,0 +1,39 @@
+<footer class="app-footer" role="contentinfo" aria-label="Informações do EcoGrow">
+  <div class="app-footer__brand">
+    <span class="app-footer__mark" aria-hidden="true">♻</span>
+    <div>
+      <strong>EcoGrow Habitat Lab</strong>
+      <span>Aprender, testar, regenerar.</span>
+    </div>
+  </div>
+  <div class="app-footer__details">
+    <span class="app-footer__status"><i aria-hidden="true"></i> Ambiente de aprendizagem</span>
+    <span class="app-footer__copyright">© <span data-footer-year>2026</span> EcoGrow</span>
+    <a href="#help" aria-label="Abrir ajuda do EcoGrow">Ajuda</a>
+  </div>
+</footer>
+<style>
+  .app-footer { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 17px clamp(18px,3vw,42px) calc(17px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); color: var(--text-muted); font-size: 11px; }
+  .app-footer__brand, .app-footer__details { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .app-footer__brand strong, .app-footer__brand > div > span, .app-footer__details > span, .app-footer__details > a { display: block; }
+  .app-footer__brand strong { color: var(--dark-gray); font-size: 12px; font-weight: 800; }
+  .app-footer__brand div > span { margin-top: 3px; }
+  .app-footer__mark { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; border-radius: 9px; background: var(--primary-soft); color: var(--primary-color); font-size: 15px; }
+  .app-footer__details { justify-content: flex-end; flex-wrap: wrap; gap: 8px 16px; }
+  .app-footer__status { display: inline-flex !important; align-items: center; gap: 6px; white-space: nowrap; }
+  .app-footer__status i { width: 7px; height: 7px; border-radius: 50%; background: var(--success-color); box-shadow: 0 0 0 3px rgba(52, 168, 108, .12); }
+  .app-footer__copyright { white-space: nowrap; }
+  .app-footer__details a { color: var(--primary-color); font-weight: 800; text-decoration: none; }
+  .app-footer__details a:hover, .app-footer__details a:focus-visible { text-decoration: underline; }
+  @media (max-width: 650px) {
+    .app-footer { align-items: flex-start; flex-direction: column; gap: 13px; }
+    .app-footer__details { justify-content: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) { .app-footer__details a { transition: none; } }
+</style>
+<script>
+  (function () {
+    var year = document.querySelector('[data-footer-year]');
+    if (year) year.textContent = String(new Date().getFullYear());
+  }());
+</script>

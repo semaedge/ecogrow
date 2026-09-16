@@ -1,0 +1,449 @@
+<script>
+  var Js_BoardEditor = {
+    currentBoardData: { modules: [], connections: [] },
+    draggedModuleId: null,
+    selectedPaletteModuleId: null,
+    selectedConnectionSource: null,
+    activeCategory: 'all',
+    searchTerm: '',
+    isDirty: false,
+    sidebarKeydownHandler: null,
+
+    init: function (query) {
+      this.currentBoardData = { modules: [], connections: [] };
+      this.selectedPaletteModuleId = null;
+      this.selectedConnectionSource = null;
+      this.activeCategory = 'all';
+      this.searchTerm = '';
+      this.setupEventListeners();
+      this.loadModulesIntoSidebar().then(function () {
+        Js_BoardEditor.loadBoard(query ? query.get('boardId') : null);
+      }).catch(function () {
+        Js_BoardEditor.loadBoard(query ? query.get('boardId') : null);
+      });
+    },
+
+    destroy: function () {
+      if (this.sidebarKeydownHandler) document.removeEventListener('keydown', this.sidebarKeydownHandler);
+      this.sidebarKeydownHandler = null;
+      document.body.classList.remove('sidebar-open');
+      var sidebar = document.getElementById('module-sidebar');
+      var trigger = document.getElementById('open-sidebar');
+      if (sidebar) sidebar.setAttribute('aria-hidden', 'true');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    },
+
+    setupEventListeners: function () {
+      var byId = function (id) { return document.getElementById(id); };
+      byId('save-board-btn').addEventListener('click', this.handleSaveBoard.bind(this));
+      byId('run-simulation-btn').addEventListener('click', this.handleRunSimulation.bind(this));
+      byId('panel-simulate-btn').addEventListener('click', this.handleRunSimulation.bind(this));
+      byId('clear-board-btn').addEventListener('click', this.handleClearBoard.bind(this));
+      byId('import-board-btn').addEventListener('click', function () { byId('import-board-file').click(); });
+      byId('import-board-file').addEventListener('change', this.handleImportFile.bind(this));
+      byId('export-board-btn').addEventListener('click', this.handleExportBoard.bind(this));
+      byId('delete-board-btn').addEventListener('click', this.handleDeleteBoard.bind(this));
+      byId('board-name').addEventListener('input', this.markUnsaved.bind(this));
+      byId('module-list').addEventListener('dragstart', this.handleDragStart.bind(this));
+      byId('module-list').addEventListener('click', this.handlePaletteSelect.bind(this));
+      byId('module-list').addEventListener('keydown', this.handlePaletteKeydown.bind(this));
+      byId('game-board-container').addEventListener('dragover', this.handleDragOver.bind(this));
+      byId('game-board-container').addEventListener('drop', this.handleDrop.bind(this));
+      byId('game-board-container').addEventListener('dragleave', this.handleDragLeave.bind(this));
+      byId('game-board-container').addEventListener('click', this.handleBoardClick.bind(this));
+      byId('game-board-container').addEventListener('keydown', this.handleBoardKeydown.bind(this));
+      byId('module-search-input').addEventListener('input', function (event) { Js_BoardEditor.searchTerm = event.target.value.toLowerCase().trim(); Js_BoardEditor.renderModuleLibrary(); });
+      byId('module-categories').addEventListener('click', this.handleCategorySelect.bind(this));
+      document.querySelectorAll('.layer-btn').forEach(function (button) { button.addEventListener('click', Js_BoardEditor.handleLayerChange.bind(Js_BoardEditor)); });
+      var sidebar = byId('module-sidebar');
+      var openSidebar = byId('open-sidebar');
+      var closeSidebar = function (returnFocus) {
+        document.body.classList.remove('sidebar-open');
+        if (sidebar) sidebar.setAttribute('aria-hidden', 'true');
+        if (openSidebar) openSidebar.setAttribute('aria-expanded', 'false');
+        if (returnFocus && openSidebar) openSidebar.focus();
+      };
+      var showSidebar = function () {
+        document.body.classList.add('sidebar-open');
+        if (sidebar) sidebar.setAttribute('aria-hidden', 'false');
+        if (openSidebar) openSidebar.setAttribute('aria-expanded', 'true');
+        if (window.innerWidth <= 860 && byId('close-sidebar')) byId('close-sidebar').focus();
+      };
+      if (openSidebar) openSidebar.addEventListener('click', showSidebar);
+      if (byId('close-sidebar')) byId('close-sidebar').addEventListener('click', function () { closeSidebar(true); });
+      if (byId('sidebar-scrim')) byId('sidebar-scrim').addEventListener('click', function () { closeSidebar(true); });
+      if (this.sidebarKeydownHandler) document.removeEventListener('keydown', this.sidebarKeydownHandler);
+      this.sidebarKeydownHandler = function (event) {
+        if (!document.body.classList.contains('sidebar-open')) return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeSidebar(true);
+          return;
+        }
+        if (event.key !== 'Tab' || window.innerWidth > 860 || !sidebar) return;
+        var focusable = Array.prototype.slice.call(sidebar.querySelectorAll('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+        if (!focusable.length) return;
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      };
+      document.addEventListener('keydown', this.sidebarKeydownHandler);
+      if (sidebar) sidebar.setAttribute('aria-hidden', window.innerWidth <= 860 ? 'true' : 'false');
+    },
+
+    loadModulesIntoSidebar: function () {
+      return EcoGrow.Api.call('module/list').then(function (data) {
+        EcoGrow.State.modules = data.modules || [];
+        Js_BoardEditor.renderModuleLibrary();
+      }).catch(function (error) {
+        var list = document.getElementById('module-list');
+        if (list) {
+          list.innerHTML =
+            '<div class="sidebar-tip" role="alert">' +
+              '<p>Não foi possível carregar os módulos.</p>' +
+              '<button type="button" class="btn btn-small" data-retry-modules>' +
+                'Tentar novamente' +
+              '</button>' +
+            '</div>';
+          var retry = list.querySelector('[data-retry-modules]');
+          if (retry) {
+            retry.addEventListener('click', function () {
+              retry.disabled = true;
+              retry.textContent = 'Carregando…';
+              Js_BoardEditor.loadModulesIntoSidebar().catch(function () {});
+            });
+          }
+        }
+        EcoGrow.UI.showMessage('Erro ao carregar módulos: ' + error.message, 'error');
+        throw error;
+      });
+    },
+
+    renderModuleLibrary: function () {
+      var list = document.getElementById('module-list');
+      if (!list) return;
+      list.innerHTML = '';
+      var modules = EcoGrow.State.modules.filter(function (module) {
+        var categoryMatch = Js_BoardEditor.activeCategory === 'all' || module.type === Js_BoardEditor.activeCategory;
+        if (Js_BoardEditor.activeCategory === 'treatment') categoryMatch = /_treatment$/.test(module.type || '') || module.type === 'mixer';
+        if (Js_BoardEditor.activeCategory === 'utility') categoryMatch = ['utility', 'pipe_vertical', 'pump_module'].indexOf(module.type) !== -1;
+        var searchMatch = !Js_BoardEditor.searchTerm || String(module.name || '').toLowerCase().indexOf(Js_BoardEditor.searchTerm) >= 0;
+        return categoryMatch && searchMatch;
+      });
+      if (!modules.length) { list.innerHTML = '<div class="sidebar-tip"><p>Nenhum módulo encontrado.</p></div>'; return; }
+      modules.forEach(function (module) {
+        var card = Component_Module_Card.create(module, {
+          selected: String(module.id) === String(Js_BoardEditor.selectedPaletteModuleId),
+          typeLabel: Js_BoardEditor.getTypeLabel(module.type)
+        });
+        list.appendChild(card);
+      });
+    },
+
+    getTypeLabel: function (type) {
+      return ({ blackwater_input: 'água negra', greywater_input: 'água cinza', greywater_treatment: 'tratamento de água cinza', blackwater_treatment: 'tratamento de água negra', compost_treatment: 'compostagem', mixer: 'mistura', garden_output: 'cultivo', utility: 'apoio' })[type] || type || 'módulo';
+    },
+
+    loadBoard: function (boardId) {
+      if (!boardId) { this.resetBoard(); return; }
+      EcoGrow.Api.call('board/load', { boardId: boardId }).then(function (data) {
+        Js_BoardEditor.currentBoardData = data.boardData || { modules: [], connections: [] };
+        Js_BoardEditor.currentBoardData.modules = Js_BoardEditor.currentBoardData.modules || [];
+        Js_BoardEditor.currentBoardData.connections = Js_BoardEditor.currentBoardData.connections || [];
+        Js_BoardEditor.currentBoardData.modules.forEach(function (module) { if (!module.instanceId) module.instanceId = module.id; if (module.moduleId) module.id = module.moduleId; });
+        Js_BoardEditor.currentBoardData.id = boardId;
+        document.getElementById('board-name').value = data.name || 'Sistema sem nome';
+        Js_BoardRender.renderBoard(Js_BoardEditor.currentBoardData);
+        Js_BoardEditor.markSaved();
+        Js_BoardEditor.updateBoardActionState();
+        EcoGrow.UI.showMessage('Sistema carregado e pronto para editar.', 'success');
+      }).catch(function (error) {
+        EcoGrow.UI.showMessage('Erro ao carregar sistema: ' + error.message, 'error');
+        Js_BoardEditor.resetBoard();
+      });
+    },
+
+    resetBoard: function () {
+      this.currentBoardData = { modules: [], connections: [] };
+      Js_BoardRender.activeLayer = 0;
+      var name = document.getElementById('board-name');
+      if (name) name.value = 'Novo sistema';
+      Js_BoardRender.renderBoard(this.currentBoardData);
+      this.markUnsaved();
+      this.updateBoardActionState();
+    },
+
+    handleCategorySelect: function (event) {
+      var button = event.target.closest('.category-item');
+      if (!button) return;
+      this.activeCategory = button.dataset.category;
+      document.querySelectorAll('.category-item').forEach(function (item) {
+        var isActive = item === button;
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-pressed', String(isActive));
+      });
+      this.renderModuleLibrary();
+    },
+
+    handlePaletteSelect: function (event) {
+      var card = event.target.closest('.module-card');
+      if (!card) return;
+      this.selectedPaletteModuleId = card.dataset.moduleId;
+      this.renderModuleLibrary();
+      document.body.classList.remove('sidebar-open');
+      var sidebar = document.getElementById('module-sidebar');
+      var trigger = document.getElementById('open-sidebar');
+      if (sidebar) sidebar.setAttribute('aria-hidden', 'true');
+      if (trigger) {
+        trigger.setAttribute('aria-expanded', 'false');
+        if (window.innerWidth <= 860) trigger.focus();
+      }
+      EcoGrow.UI.showMessage('Módulo selecionado. Agora escolha uma célula no tabuleiro.', 'info');
+    },
+
+    handlePaletteKeydown: function (event) { if ((event.key === 'Enter' || event.key === ' ') && event.target.closest('.module-card')) { event.preventDefault(); this.handlePaletteSelect(event); } },
+    handleDragStart: function (event) { var card = event.target.closest('.module-card'); if (!card) return; this.draggedModuleId = card.dataset.moduleId; event.dataTransfer.setData('text/plain', this.draggedModuleId); event.dataTransfer.effectAllowed = 'copy'; },
+    handleDragOver: function (event) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; event.currentTarget.classList.add('highlight-valid-drop'); },
+    handleDragLeave: function (event) { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.classList.remove('highlight-valid-drop'); },
+    handleDrop: function (event) { event.preventDefault(); event.currentTarget.classList.remove('highlight-valid-drop'); var cell = event.target.closest('.grid-cell'); if (cell) this.placeModule(event.dataTransfer.getData('text/plain') || this.draggedModuleId, cell); },
+
+    handleBoardClick: function (event) {
+      var portElement = event.target.closest('.module-port');
+      if (portElement) { event.stopPropagation(); this.handlePortSelect(portElement); return; }
+      var connectionElement = event.target.closest('.flow-path');
+      if (connectionElement) { this.handleConnectionRemove(Number(connectionElement.dataset.connectionIndex)); return; }
+      var moduleElement = event.target.closest('.module-item');
+      if (moduleElement) { this.openModuleConfig(moduleElement.dataset.instanceId); return; }
+      var cell = event.target.closest('.grid-cell');
+      if (cell && this.selectedPaletteModuleId) this.placeModule(this.selectedPaletteModuleId, cell);
+    },
+
+    handleBoardKeydown: function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      var portElement = event.target.closest('.module-port');
+      if (portElement) { event.preventDefault(); this.handlePortSelect(portElement); return; }
+      var connectionElement = event.target.closest('.flow-path');
+      if (connectionElement) { event.preventDefault(); this.handleConnectionRemove(Number(connectionElement.dataset.connectionIndex)); return; }
+      var moduleElement = event.target.closest('.module-item');
+      var cell = event.target.closest('.grid-cell');
+      if (moduleElement) { event.preventDefault(); this.openModuleConfig(moduleElement.dataset.instanceId); }
+      else if (cell && this.selectedPaletteModuleId) { event.preventDefault(); this.placeModule(this.selectedPaletteModuleId, cell); }
+    },
+
+    placeModule: function (moduleId, cell) {
+      var definition = EcoGrow.State.modules.find(function (module) { return String(module.id) === String(moduleId); });
+      if (!definition) return;
+      var x = Number(cell.dataset.x), y = Number(cell.dataset.y), z = Number(cell.dataset.z);
+      if (this.currentBoardData.modules.some(function (module) { return Number(module.x) === x && Number(module.y) === y && Number(module.z || 0) === z; })) {
+        EcoGrow.UI.showMessage('Esta célula já está ocupada.', 'warning');
+        return;
+      }
+      this.currentBoardData.modules.push({ id: definition.id, instanceId: this.createId(), name: definition.name, type: definition.type, x: x, y: y, z: z, orientation: 'north', plantId: null });
+      Js_BoardRender.renderBoard(this.currentBoardData);
+      this.markUnsaved();
+    },
+
+    createId: function () { return window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'module-' + Date.now() + '-' + Math.random().toString(16).slice(2); },
+    handlePortSelect: function (portElement) {
+      var direction = portElement.dataset.direction;
+      var endpoint = { id: portElement.dataset.instanceId, port: portElement.dataset.portName };
+      if (direction === 'output') {
+        this.selectedConnectionSource = endpoint;
+        document.querySelectorAll('.module-port.output').forEach(function (port) { port.classList.toggle('selected-source', port === portElement); });
+        EcoGrow.UI.showMessage('Saída ' + endpoint.port + ' selecionada. Escolha uma entrada compatível.', 'info');
+        return;
+      }
+      if (!this.selectedConnectionSource) {
+        EcoGrow.UI.showMessage('Selecione primeiro uma porta de saída.', 'warning');
+        return;
+      }
+      if (this.selectedConnectionSource.id === endpoint.id) {
+        EcoGrow.UI.showMessage('Um módulo não pode ser conectado a ele mesmo.', 'warning');
+        return;
+      }
+      if (this.selectedConnectionSource.port !== endpoint.port) {
+        EcoGrow.UI.showMessage('Portas incompatíveis: ' + this.selectedConnectionSource.port + ' e ' + endpoint.port + '.', 'warning');
+        return;
+      }
+      var connection = { from: { id: this.selectedConnectionSource.id, output: this.selectedConnectionSource.port }, to: { id: endpoint.id, input: endpoint.port } };
+      var duplicate = this.currentBoardData.connections.some(function (existing) {
+        return existing.from.id === connection.from.id && existing.from.output === connection.from.output && existing.to.id === connection.to.id && existing.to.input === connection.to.input;
+      });
+      if (duplicate) {
+        EcoGrow.UI.showMessage('Esta conexão já existe.', 'warning');
+        return;
+      }
+      this.currentBoardData.connections.push(connection);
+      this.selectedConnectionSource = null;
+      Js_BoardRender.renderBoard(this.currentBoardData);
+      this.markUnsaved();
+      EcoGrow.UI.showMessage('Fluxo conectado com sucesso.', 'success');
+    },
+    handleConnectionRemove: function (connectionIndex) {
+      if (!Number.isInteger(connectionIndex) || !this.currentBoardData.connections[connectionIndex]) return;
+      EcoGrow.UI.showConfirm(
+        'Remover conexão de fluxo',
+        'Deseja remover esta conexão entre os módulos?',
+        function () {
+          Js_BoardEditor.currentBoardData.connections.splice(connectionIndex, 1);
+          Js_BoardRender.renderBoard(Js_BoardEditor.currentBoardData);
+          Js_BoardEditor.markUnsaved();
+          EcoGrow.UI.showMessage('Conexão removida.', 'info');
+        },
+        null,
+        { confirmText: 'Remover', danger: true }
+      );
+    },
+    openModuleConfig: function (instanceId) { var instance = this.currentBoardData.modules.find(function (module) { return module.instanceId === instanceId; }); if (instance) Modal_Module_Config.show(instance, this.handleModuleConfigSave.bind(this), this.handleModuleRemove.bind(this)); },
+    handleModuleConfigSave: function (updated) { var index = this.currentBoardData.modules.findIndex(function (module) { return module.instanceId === updated.instanceId; }); if (index >= 0) { this.currentBoardData.modules[index] = updated; Js_BoardRender.renderBoard(this.currentBoardData); this.markUnsaved(); EcoGrow.UI.showMessage('Configuração atualizada.', 'success'); } },
+    handleModuleRemove: function (instanceId) { this.currentBoardData.modules = this.currentBoardData.modules.filter(function (module) { return module.instanceId !== instanceId; }); this.currentBoardData.connections = this.currentBoardData.connections.filter(function (connection) { return connection.from.id !== instanceId && connection.to.id !== instanceId; }); Js_BoardRender.renderBoard(this.currentBoardData); this.markUnsaved(); EcoGrow.UI.showMessage('Módulo removido.', 'info'); },
+    handleLayerChange: function (event) { document.querySelectorAll('.layer-btn').forEach(function (button) { button.classList.toggle('active', button === event.currentTarget); }); Js_BoardRender.setLayer(event.currentTarget.dataset.layer, this.currentBoardData); },
+
+    handleSaveBoard: function () {
+      var name = document.getElementById('board-name').value.trim();
+      if (!name) { EcoGrow.UI.showMessage('Dê um nome ao sistema antes de salvar.', 'warning'); document.getElementById('board-name').focus(); return; }
+      EcoGrow.Api.call('board/save', { boardId: this.currentBoardData.id || null, name: name, boardData: this.currentBoardData }).then(function (response) {
+        if (!Js_BoardEditor.currentBoardData.id) Js_BoardEditor.currentBoardData.id = response.boardId;
+        Js_BoardEditor.markSaved();
+        Js_BoardEditor.updateBoardActionState();
+        EcoGrow.UI.showMessage(response.message || 'Sistema salvo com sucesso.', 'success');
+      }).catch(function (error) { EcoGrow.UI.showMessage('Erro ao salvar: ' + error.message, 'error'); });
+    },
+
+    updateBoardActionState: function () {
+      var hasSavedBoard = Boolean(this.currentBoardData && this.currentBoardData.id);
+      var exportButton = document.getElementById('export-board-btn');
+      var deleteButton = document.getElementById('delete-board-btn');
+      if (exportButton) exportButton.disabled = !hasSavedBoard || this.isDirty;
+      if (deleteButton) deleteButton.disabled = !hasSavedBoard;
+    },
+
+    handleImportFile: function (event) {
+      var input = event.currentTarget;
+      var file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+      if (file.size > 1024 * 1024) {
+        EcoGrow.UI.showMessage('O arquivo excede o limite de 1 MB.', 'warning');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onerror = function () { EcoGrow.UI.showMessage('Não foi possível ler o arquivo selecionado.', 'error'); };
+      reader.onload = function () {
+        var content = String(reader.result || '');
+        try { JSON.parse(content); } catch (error) {
+          EcoGrow.UI.showMessage('O arquivo não contém JSON válido.', 'error');
+          return;
+        }
+        var importedName = file.name.replace(/\.json$/i, '').trim().substring(0, 80) || 'Sistema importado';
+        EcoGrow.Api.call('import/board', { name: importedName, jsonContent: content }).then(function (response) {
+          EcoGrow.UI.showMessage(response.message || 'Sistema importado com sucesso.', 'success');
+          Js_BoardEditor.loadBoard(response.boardId);
+        }).catch(function (error) { EcoGrow.UI.showMessage('Erro ao importar: ' + error.message, 'error'); });
+      };
+      reader.readAsText(file, 'UTF-8');
+    },
+
+    handleExportBoard: function () {
+      var boardId = this.currentBoardData && this.currentBoardData.id;
+      if (!boardId) { EcoGrow.UI.showMessage('Salve o sistema antes de exportar.', 'warning'); return; }
+      EcoGrow.Api.call('export/board', { boardId: boardId }).then(function (data) {
+        Js_BoardEditor.downloadTextFile(data.filename, data.content, 'application/json;charset=utf-8');
+        EcoGrow.UI.showMessage('Arquivo de exportação preparado.', 'success');
+      }).catch(function (error) { EcoGrow.UI.showMessage('Erro ao exportar: ' + error.message, 'error'); });
+    },
+
+    downloadTextFile: function (filename, content, mimeType) {
+      var blob = new Blob([content || ''], { type: mimeType });
+      var url = URL.createObjectURL(blob);
+      var anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = String(filename || 'EcoGrow_Board.json').replace(/[\\/:*?"<>|]+/g, '_');
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+    },
+
+    handleDeleteBoard: function () {
+      var boardId = this.currentBoardData && this.currentBoardData.id;
+      if (!boardId) return;
+      EcoGrow.UI.showConfirm(
+        'Excluir sistema salvo',
+        'Tem certeza que deseja excluir permanentemente este sistema salvo?',
+        function () {
+          EcoGrow.Api.call('board/delete', { boardId: boardId }).then(function () {
+            Js_BoardEditor.resetBoard();
+            EcoGrow.UI.showMessage('Sistema excluído.', 'success');
+          }).catch(function (error) { EcoGrow.UI.showMessage('Erro ao excluir: ' + error.message, 'error'); });
+        },
+        null,
+        { confirmText: 'Excluir', danger: true }
+      );
+    },
+
+    handleRunSimulation: function () {
+      if (!this.currentBoardData.modules.length) { EcoGrow.UI.showMessage('Adicione pelo menos um módulo antes de simular.', 'warning'); return; }
+      EcoGrow.Api.call('simulation/run', { boardData: this.currentBoardData, boardId: this.currentBoardData.id || null }).then(function (result) {
+        Modal_Simulation_Result.show(result);
+        Js_BoardEditor.renderDiagnostics(result);
+        if (window.Js_Flow_Visualizer) Js_Flow_Visualizer.renderFlows(Js_BoardEditor.currentBoardData, result);
+        if (result.reward && result.reward.balance !== undefined) {
+          if (EcoGrow.State.currentUser) EcoGrow.State.currentUser.balance = Number(result.reward.balance) || 0;
+          var balance = document.getElementById('player-balance');
+          if (balance) balance.textContent = (Number(result.reward.balance) || 0) + ' créditos';
+          if (result.reward.applied && result.reward.amount) EcoGrow.UI.showMessage('Você ganhou ' + result.reward.amount + ' créditos!', 'success');
+        }
+        if (window.Js_Notifications && result.notificationsCreated) Js_Notifications.load();
+        EcoGrow.UI.showMessage('Diagnóstico concluído.', 'success');
+      }).catch(function (error) { EcoGrow.UI.showMessage('Erro na simulação: ' + error.message, 'error'); });
+    },
+
+    renderDiagnostics: function (result) {
+      var score = document.querySelector('.score-preview');
+      if (score) score.textContent = Math.round(result.score || 0);
+      var breakdown = result.breakdown || {};
+      var sanitation = Number(breakdown.sanitation || 0);
+      var nutrition = Number(breakdown.nutrition || 0);
+      var sanitationScore = document.getElementById('sanitation-score');
+      var nutritionScore = document.getElementById('nutrition-score');
+      if (sanitationScore) sanitationScore.textContent = sanitation + '/35';
+      if (nutritionScore) nutritionScore.textContent = nutrition + '/25';
+      var sanitationBar = document.getElementById('sanitation-progress');
+      var nutritionBar = document.getElementById('nutrition-progress');
+      if (sanitationBar) sanitationBar.style.width = Math.min(100, sanitation / 35 * 100) + '%';
+      if (nutritionBar) nutritionBar.style.width = Math.min(100, nutrition / 25 * 100) + '%';
+      var npk = document.getElementById('npk-bar-container');
+      if (npk) {
+        Component_NPK_Bar.mount(npk, Component_NPK_Bar.summarize(result.waterQuality || {}));
+        var summary = document.createElement('div');
+        summary.className = 'diagnostic-summary';
+        var integrity = document.createElement('strong');
+        var details = document.createElement('span');
+        integrity.textContent = 'Integridade ' + Number(breakdown.integrity || 0) + '/20';
+        details.textContent = 'Cobertura ' + Number(breakdown.coverage || 0) + '/10 · Limpeza ' + Number(breakdown.cleanliness || 0) + '/10';
+        summary.append(integrity, details);
+        npk.appendChild(summary);
+      }
+      var pathogen = document.getElementById('pathogen-warning-container');
+      if (pathogen) Component_Pathogen_Warning.mount(pathogen, Component_Pathogen_Warning.summarize(result.waterQuality || {}));
+      var messages = document.getElementById('simulation-messages');
+      if (messages) {
+        messages.className = 'diagnostic-empty';
+        messages.innerHTML = '';
+        (result.feedback || []).slice(0, 5).forEach(function (item) { var line = document.createElement('p'); line.textContent = item.message; messages.appendChild(line); });
+        if (!(result.feedback || []).length) messages.innerHTML = '<p>O modelo não encontrou alertas. Isso não comprova segurança real: explique sua ideia ao professor.</p>';
+      }
+    },
+
+    handleClearBoard: function () { if (window.confirm('Limpar todos os módulos deste sistema?')) { this.resetBoard(); EcoGrow.UI.showMessage('Tabuleiro limpo.', 'info'); } },
+    markUnsaved: function () { this.isDirty = true; var status = document.getElementById('save-status'); if (status) { status.classList.remove('saved'); status.lastChild.textContent = 'Alterações não salvas'; } this.updateBoardActionState(); },
+    markSaved: function () { this.isDirty = false; var status = document.getElementById('save-status'); if (status) { status.classList.add('saved'); status.lastChild.textContent = 'Salvo'; } this.updateBoardActionState(); }
+  };
+</script>

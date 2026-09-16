@@ -1,0 +1,93 @@
+<div id="simulation-result-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="simulation-result-title" hidden>
+  <div class="modal-content simulation-result-content" tabindex="-1">
+    <button class="close-button" type="button" data-modal-close aria-label="Fechar">×</button>
+    <span class="eyebrow">Teste concluído</span>
+    <h2 id="simulation-result-title">Pistas para melhorar sua ideia</h2>
+    <div class="simulation-score-block"><strong id="final-score">0</strong><span>de 100 no modelo — não é nota</span></div>
+    <p class="simulation-safety"><strong>Atenção:</strong> este resultado não prova que um sistema real é seguro. Não use água real.</p>
+    <dl id="simulation-breakdown" class="simulation-breakdown"></dl>
+    <div id="simulation-reward" class="simulation-reward" hidden></div>
+    <div class="modal-body"><h3>O que observar e testar</h3><ul id="simulation-feedback-list" class="simulation-feedback-list"></ul></div>
+    <div class="modal-footer"><button class="btn" type="button" data-modal-close>Fechar</button></div>
+  </div>
+</div>
+<script>
+  var Modal_Simulation_Result = {
+    modalElement: null,
+    previousFocus: null,
+    labels: { sanitation: 'Saneamento', nutrition: 'Nutrição', integrity: 'Integridade', coverage: 'Cobertura', cleanliness: 'Limpeza' },
+
+    init: function () {
+      if (this.modalElement) return true;
+      this.modalElement = document.getElementById('simulation-result-modal');
+      if (!this.modalElement) return false;
+      this.modalElement.querySelectorAll('[data-modal-close]').forEach(function (button) { button.addEventListener('click', Modal_Simulation_Result.hide.bind(Modal_Simulation_Result)); });
+      this.modalElement.addEventListener('click', function (event) { if (event.target === Modal_Simulation_Result.modalElement) Modal_Simulation_Result.hide(); });
+      this.modalElement.addEventListener('keydown', function (event) { if (event.key === 'Escape') Modal_Simulation_Result.hide(); });
+      return true;
+    },
+
+    show: function (result) {
+      if (!this.init()) return;
+      result = result || {};
+      this.previousFocus = document.activeElement;
+      document.getElementById('final-score').textContent = Math.round(Math.max(0, Math.min(100, Number(result.score) || 0)));
+      this.renderBreakdown(result.breakdown || {});
+      this.renderFeedback(Array.isArray(result.feedback) ? result.feedback : []);
+      this.renderReward(result.reward);
+      this.modalElement.hidden = false;
+      this.modalElement.classList.add('is-open');
+      document.body.classList.add('modal-open');
+      this.modalElement.querySelector('.modal-content').focus();
+    },
+
+    renderBreakdown: function (breakdown) {
+      var list = document.getElementById('simulation-breakdown');
+      list.innerHTML = '';
+      Object.keys(this.labels).forEach(function (key) {
+        var term = document.createElement('dt');
+        var detail = document.createElement('dd');
+        term.textContent = Modal_Simulation_Result.labels[key];
+        detail.textContent = Math.max(0, Math.round(Number(breakdown[key]) || 0));
+        list.append(term, detail);
+      });
+    },
+
+    renderFeedback: function (feedback) {
+      var list = document.getElementById('simulation-feedback-list');
+      list.innerHTML = '';
+      if (!feedback.length) feedback = [{ type: 'success', message: 'O modelo não encontrou alertas. Explique sua escolha e lembre que o mundo real precisa de verificação.' }];
+      var allowedTypes = ['critical', 'warning', 'sanitation', 'nutrition', 'integrity', 'coverage', 'success'];
+      feedback.forEach(function (item) {
+        var type = allowedTypes.indexOf(item.type) >= 0 ? item.type : 'warning';
+        var entry = document.createElement('li');
+        entry.className = 'feedback-' + type;
+        var label = document.createElement('strong');
+        var message = document.createElement('span');
+        label.textContent = type === 'critical' ? 'Veja primeiro' : type === 'warning' ? 'Atenção' : 'Pista';
+        message.textContent = item.message || 'Revise esta etapa.';
+        entry.append(label, message);
+        list.appendChild(entry);
+      });
+    },
+
+    renderReward: function (reward) {
+      var element = document.getElementById('simulation-reward');
+      if (!reward || !reward.applied || !Number(reward.amount)) { element.hidden = true; element.textContent = ''; return; }
+      element.hidden = false;
+      element.textContent = '+' + Number(reward.amount) + ' créditos pela simulação · saldo ' + (Number(reward.balance) || 0);
+    },
+
+    hide: function () {
+      if (!this.modalElement || this.modalElement.hidden) return;
+      this.modalElement.hidden = true;
+      this.modalElement.classList.remove('is-open');
+      document.body.classList.remove('modal-open');
+      if (this.previousFocus && document.body.contains(this.previousFocus)) this.previousFocus.focus();
+      this.previousFocus = null;
+    }
+  };
+</script>
+<style>
+  .modal.is-open{display:flex}.modal-open{overflow:hidden}.simulation-result-content{width:min(650px,100%)}.simulation-score-block{display:flex;align-items:baseline;gap:8px;margin-top:18px}.simulation-score-block strong{color:var(--primary-color);font:800 52px/1 'Manrope'}.simulation-score-block span{color:var(--text-muted);font-size:12px}.simulation-safety{margin-top:14px;padding:10px 12px;border-left:3px solid #d97706;border-radius:7px;background:#fff7e6;color:#6f4300;font-size:12px}.simulation-breakdown{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:18px}.simulation-breakdown dt,.simulation-breakdown dd{margin:0;text-align:center}.simulation-breakdown dt{grid-row:2;color:var(--text-muted);font-size:9px}.simulation-breakdown dd{grid-row:1;padding:9px;border-radius:9px;background:var(--surface-alt);font-weight:800}.simulation-reward{margin-top:15px;padding:11px;border-radius:10px;background:#e5f4eb;color:#176b45;font-size:12px;font-weight:800}.simulation-feedback-list{display:grid;gap:7px;margin-top:12px;padding:0;list-style:none}.simulation-feedback-list li{display:grid;gap:2px;padding:10px 12px;border-left:3px solid var(--line);border-radius:7px;background:var(--surface-alt)}.simulation-feedback-list strong{font-size:10px;text-transform:uppercase}.simulation-feedback-list span{font-size:12px}.simulation-feedback-list .feedback-critical{border-color:var(--error-color)}.simulation-feedback-list .feedback-warning{border-color:var(--warning-color)}@media(max-width:560px){.simulation-breakdown{grid-template-columns:repeat(3,1fr)}.simulation-breakdown dt,.simulation-breakdown dd{grid-row:auto}.simulation-breakdown dt{display:none}}
+</style>

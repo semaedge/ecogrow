@@ -1,0 +1,111 @@
+<script>
+  var Js_Notifications = {
+    initialized: false,
+    requestVersion: 0,
+    notifications: [],
+    unreadCount: 0,
+
+    init: function () {
+      if (this.initialized) return;
+      this.initialized = true;
+      var button = document.getElementById('notification-button');
+      var close = document.getElementById('notification-close');
+      if (button) button.addEventListener('click', this.toggle.bind(this));
+      if (close) close.addEventListener('click', this.hide.bind(this));
+      document.addEventListener('click', function (event) {
+        var center = document.querySelector('.notification-center');
+        var panel = document.getElementById('notification-panel');
+        if (center && panel && !panel.hidden && !center.contains(event.target)) Js_Notifications.hide();
+      });
+      document.addEventListener('keydown', function (event) { if (event.key === 'Escape') Js_Notifications.hide(); });
+    },
+
+    toggle: function (event) {
+      if (event) event.stopPropagation();
+      var panel = document.getElementById('notification-panel');
+      if (!panel) return;
+      if (panel.hidden) {
+        panel.hidden = false;
+        document.getElementById('notification-button').setAttribute('aria-expanded', 'true');
+        this.load();
+      } else this.hide();
+    },
+
+    hide: function () {
+      var panel = document.getElementById('notification-panel');
+      if (panel) panel.hidden = true;
+      var button = document.getElementById('notification-button');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    },
+
+    refreshBadge: function (count) {
+      var badge = document.getElementById('notification-badge');
+      this.unreadCount = Math.max(0, Number(count) || 0);
+      if (!badge) return;
+      badge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
+      badge.hidden = this.unreadCount === 0;
+      var button = document.getElementById('notification-button');
+      if (button) button.setAttribute('aria-label', this.unreadCount ? 'Abrir notificações, ' + this.unreadCount + ' não lidas' : 'Abrir notificações');
+    },
+
+    load: function () {
+      if (!EcoGrow.State.currentUser) return Promise.resolve([]);
+      var version = ++this.requestVersion;
+      var list = document.getElementById('notification-list');
+      if (list) { list.setAttribute('aria-busy', 'true'); list.innerHTML = '<p class="notification-empty">Atualizando…</p>'; }
+      return EcoGrow.Api.call('notification/list', { limit: 30 }).then(function (data) {
+        if (version !== Js_Notifications.requestVersion) return [];
+        Js_Notifications.notifications = Array.isArray(data.notifications) ? data.notifications : [];
+        Js_Notifications.refreshBadge(data.unreadCount);
+        Js_Notifications.render();
+        return Js_Notifications.notifications;
+      }).catch(function (error) {
+        if (version !== Js_Notifications.requestVersion) return [];
+        if (list) list.innerHTML = '<p class="notification-empty">Não foi possível carregar as notificações.</p>';
+        return [];
+      }).finally(function () { if (list && version === Js_Notifications.requestVersion) list.removeAttribute('aria-busy'); });
+    },
+
+    render: function () {
+      var list = document.getElementById('notification-list');
+      if (!list) return;
+      list.innerHTML = '';
+      if (!this.notifications.length) {
+        list.innerHTML = '<p class="notification-empty">Tudo tranquilo por aqui.</p>';
+        return;
+      }
+      this.notifications.forEach(function (notification) {
+        var entry = document.createElement('button');
+        var title = document.createElement('strong');
+        var message = document.createElement('span');
+        var timestamp = document.createElement('small');
+        entry.type = 'button';
+        entry.className = 'notification-entry' + (notification.read ? '' : ' unread');
+        entry.dataset.notificationId = notification.id;
+        entry.setAttribute('aria-label', (notification.read ? '' : 'Não lida. ') + (notification.title || 'Notificação') + '. ' + (notification.message || ''));
+        title.textContent = notification.title || 'EcoGrow';
+        message.textContent = notification.message || '';
+        timestamp.textContent = EcoGrow.UI.formatDate(notification.timestamp);
+        entry.append(title, message, timestamp);
+        entry.addEventListener('click', function () { Js_Notifications.markAsRead(notification, entry); });
+        list.appendChild(entry);
+      });
+    },
+
+    markAsRead: function (notification, entry) {
+      if (!notification || notification.read) return Promise.resolve(false);
+      notification.read = true;
+      entry.classList.remove('unread');
+      this.refreshBadge(this.unreadCount - 1);
+      return EcoGrow.Api.call('notification/read', { notificationId: notification.id }).then(function () {
+        return true;
+      }).catch(function (error) {
+        notification.read = false;
+        entry.classList.add('unread');
+        Js_Notifications.refreshBadge(Js_Notifications.unreadCount + 1);
+        EcoGrow.UI.showMessage('Não foi possível marcar a notificação como lida.', 'warning');
+        return false;
+      });
+    }
+  };
+</script>

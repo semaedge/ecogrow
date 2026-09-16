@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#176b45">
+    <meta name="description" content="EcoGrow — simulador de saneamento ecológico para Tiny Houses.">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <?!= include("Css_Global") ?>
+    <?!= include("Css_UI_Components") ?>
+    <?!= include("Css_Board") ?>
+    <?!= include("Css_Animations") ?>
+    <?!= include("UX_Standards") ?>
+    <script>window.EcoGrowBrandLogo = 'data:image/png;base64,<?!= includeInlineData("BrandLogoBase64") ?>';</script>
+    <style id="fleet-mobile-wcag-aa">
+    /* Contrato FROTA: ergonomia S20 e WCAG 2.1 AA. */
+    html, body { max-width: 100%; overflow-x: hidden; }
+    :is(button, [role="button"], input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+      min-width: 48px !important;
+      min-height: 48px !important;
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+  <body>
+    <a class="sr-only" href="#main-content">Pular para o conteúdo</a>
+    <div id="app-container">
+      <?!= include("Layout_Sidebar") ?>
+      <div id="right-panel">
+        <?!= include("Layout_Header") ?>
+        <?!= include("Layout_Navbar") ?>
+        <?!= include("Layout_Main") ?>
+        <?!= include("Layout_Footer") ?>
+      </div>
+    </div>
+
+    <div id="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <div id="loading-overlay" aria-hidden="true">
+      <div class="loader-card"><span class="loader-dot"></span><span>Atualizando seu ecossistema…</span></div>
+    </div>
+
+    <?!= include("Modal_Simulation_Result") ?>
+    <?!= include("Modal_Module_Config") ?>
+    <?!= include("Component_Alert") ?>
+    <?!= include("Component_Cell") ?>
+    <?!= include("Component_Module_Card") ?>
+    <?!= include("Component_NPK_Bar") ?>
+    <?!= include("Component_Pathogen_Warning") ?>
+    <?!= include("Js_Global") ?>
+    <?!= include("Js_API") ?>
+    <?!= include("Js_Validation_UI") ?>
+    <?!= include("Js_BoardRender") ?>
+    <?!= include("Js_Flow_Visualizer") ?>
+    <?!= include("Js_BoardEditor") ?>
+    <?!= include("Js_Dashboard") ?>
+    <?!= include("Js_Reports") ?>
+    <?!= include("Js_Profile") ?>
+    <?!= include("Js_Notifications") ?>
+    <?!= include("Js_Auth") ?>
+    <?!= include("Component_RankingVizinhanca") ?>
+    <?!= include("HealthCheck") ?>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        Js_Notifications.init();
+        Js_Auth.initSession().finally(function () {
+          EcoGrow.Router.init();
+        });
+      });
+    </script>
+  <!-- fleet-method-guide:start -->
+<style>
+  .fleet-method-guide { box-sizing: border-box; flex: 0 0 auto; grid-column: 1 / -1; width: calc(100% - 2rem); max-width: 64rem; margin: 1rem auto; border: 1px solid currentColor; border-radius: .65rem; color: inherit; background: inherit; font: inherit; }
+  .fleet-method-guide > summary { cursor: pointer; padding: .75rem 1rem; min-height: 44px; box-sizing: border-box; font-weight: 600; overflow-wrap: anywhere; }
+  .fleet-method-guide > summary:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+  .fleet-method-guide .fleet-method-content { padding: 0 1rem 1rem; max-height: 50vh; overflow-y: auto; overscroll-behavior: contain; }
+  .fleet-method-guide p { margin: .5rem 0; line-height: 1.5; overflow-wrap: anywhere; }
+  .fleet-method-guide dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; margin: .75rem 0 1rem; }
+  .fleet-method-guide dt { font-weight: 600; margin-top: .5rem; }
+  .fleet-method-guide dd { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+  @media print { .fleet-method-guide { display: none; } }
+</style>
+<details class="fleet-method-guide" data-project="eco_grow">
+  <summary>Como conduzir esta atividade</summary>
+  <div class="fleet-method-content">
+    <p>Eco Grow</p>
+    <section aria-label="Para quem participa">
+      <p><strong>Para quem participa</strong></p>
+      <dl>
+        <dt>Propósito</dt><dd>Projetar um sistema ecológico e compreender relações de causa e efeito.</dd>
+        <dt>Ação</dt><dd>Montar, simular, ler indicadores e revisar o projeto.</dd>
+        <dt>Fechamento</dt><dd>Registrar a próxima mudança que testaria e sua justificativa.</dd>
+      </dl>
+    </section>
+    <section aria-label="Para quem conduz a turma">
+      <p><strong>Para quem conduz a turma</strong></p>
+      <dl>
+        <dt>Propósito</dt><dd>Mediar pensamento sistêmico sem apresentar a simulação como autorização técnica real.</dd>
+        <dt>Ação</dt><dd>Acompanhar hipóteses, revisões e dificuldades da turma.</dd>
+        <dt>Fechamento</dt><dd>Comparar estratégias e limites do modelo didático.</dd>
+      </dl>
+    </section>
+  </div>
+</details>
+<!-- fleet-method-guide:end -->
+</body>
+</html>

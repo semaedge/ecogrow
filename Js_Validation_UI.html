@@ -1,0 +1,90 @@
+<script>
+  var Js_Validation_UI = {
+    errorClass: 'field-error-message',
+
+    ensureId: function (element) {
+      if (element.id) return element.id;
+      element.id = 'field-' + Math.random().toString(36).slice(2, 10);
+      return element.id;
+    },
+
+    getMessage: function (element) {
+      if (element.validity.valueMissing) return 'Este campo é obrigatório.';
+      if (element.validity.typeMismatch) return element.type === 'email' ? 'Informe um e-mail válido.' : 'Use um valor válido.';
+      if (element.validity.tooShort) return 'Use pelo menos ' + element.minLength + ' caracteres.';
+      if (element.validity.tooLong) return 'Use no máximo ' + element.maxLength + ' caracteres.';
+      if (element.validity.patternMismatch) return element.dataset.validationMessage || 'O formato informado não é válido.';
+      if (element.validity.rangeUnderflow) return 'O valor mínimo é ' + element.min + '.';
+      if (element.validity.rangeOverflow) return 'O valor máximo é ' + element.max + '.';
+      if (element.validity.stepMismatch) return 'Use um valor compatível com o intervalo esperado.';
+      return element.validationMessage || 'Revise este campo.';
+    },
+
+    showError: function (elementOrId, message) {
+      var element = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+      if (!element) return;
+      var id = this.ensureId(element);
+      this.clearError(element);
+      element.classList.add('error-input', 'error-shake');
+      element.setAttribute('aria-invalid', 'true');
+
+      var errorMessage = document.createElement('p');
+      errorMessage.id = id + '-error';
+      errorMessage.className = this.errorClass;
+      errorMessage.setAttribute('role', 'alert');
+      errorMessage.textContent = message;
+      element.insertAdjacentElement('afterend', errorMessage);
+      element.setAttribute('aria-describedby', errorMessage.id);
+      window.setTimeout(function () { element.classList.remove('error-shake'); }, 350);
+    },
+
+    clearError: function (elementOrId) {
+      var element = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+      if (!element) return;
+      element.classList.remove('error-input', 'error-shake');
+      element.removeAttribute('aria-invalid');
+      var describedBy = element.getAttribute('aria-describedby');
+      if (describedBy && /-error$/.test(describedBy)) element.removeAttribute('aria-describedby');
+      var sibling = element.nextElementSibling;
+      if (sibling && sibling.classList.contains(this.errorClass)) sibling.remove();
+    },
+
+    validateField: function (element) {
+      if (!element || element.disabled || element.type === 'button' || element.type === 'submit') return true;
+      this.clearError(element);
+      if (typeof element.checkValidity === 'function' && !element.checkValidity()) {
+        this.showError(element, this.getMessage(element));
+        return false;
+      }
+      return true;
+    },
+
+    validateForm: function (formOrId) {
+      var form = typeof formOrId === 'string' ? document.getElementById(formOrId) : formOrId;
+      if (!form) return false;
+      var firstInvalid = null;
+      Array.prototype.forEach.call(form.elements, function (element) {
+        if (!Js_Validation_UI.validateField(element) && !firstInvalid) firstInvalid = element;
+      });
+      if (firstInvalid) firstInvalid.focus();
+      return !firstInvalid;
+    },
+
+    bindForm: function (formOrId) {
+      var form = typeof formOrId === 'string' ? document.getElementById(formOrId) : formOrId;
+      if (!form || form.dataset.validationBound === 'true') return;
+      form.dataset.validationBound = 'true';
+      form.setAttribute('novalidate', 'novalidate');
+      form.addEventListener('input', function (event) {
+        if (event.target.matches('input, select, textarea')) Js_Validation_UI.clearError(event.target);
+      });
+      form.addEventListener('blur', function (event) {
+        if (event.target.matches('input, select, textarea') && event.target.value) Js_Validation_UI.validateField(event.target);
+      }, true);
+    }
+  };
+</script>
+<style>
+  .error-input { border-color: var(--error-color) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--error-color) 16%, transparent) !important; }
+  .field-error-message { margin: 5px 0 0; color: var(--error-color); font-size: .8rem; }
+</style>

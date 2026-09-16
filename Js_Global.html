@@ -1,0 +1,228 @@
+<script>
+  var EcoGrow = {
+    State: { currentUser: null, currentBoard: null, modules: [], plants: [] },
+
+    Router: {
+      routes: {
+        dashboard: { view: 'View_Dashboard', controller: 'Js_Dashboard', auth: true, kicker: 'Seu laboratório', label: 'Visão geral', description: 'Acompanhe seus sistemas e escolha o próximo experimento.', action: { label: 'Construir sistema', destination: 'boardEditor' } },
+        boardEditor: { view: 'View_BoardEditor', controller: 'Js_BoardEditor', auth: true, kicker: 'Mão na massa', label: 'Construir', description: 'Antes de simular, faça uma previsão; depois monte, conecte e teste seu habitat.', action: { label: 'Comparar resultados', destination: 'reports' } },
+        reports: { view: 'View_Reports', controller: 'Js_Reports', auth: true, kicker: 'Aprenda com os dados', label: 'Resultados', description: 'Compare previsão e resultado, explique os alertas e escolha uma única variável para revisar.', action: { label: 'Revisar sistema', destination: 'boardEditor' } },
+        login: { view: 'View_Login', controller: 'Js_Auth', auth: false, kicker: 'Bem-vindo', label: 'Entrar', description: 'Acesse seu laboratório EcoGrow.' },
+        register: { view: 'View_Register', controller: 'Js_Auth', auth: false, kicker: 'Primeiro passo', label: 'Criar conta', description: 'Comece seu laboratório sustentável.' },
+        profile: { view: 'View_Profile', controller: 'Js_Profile', auth: true, kicker: 'Sua conta', label: 'Perfil', description: 'Mantenha seus dados e preferências atualizados.', action: { label: 'Voltar ao painel', destination: 'dashboard' } },
+        help: { view: 'View_Help', controller: null, auth: false, kicker: 'Base de conhecimento', label: 'Aprender', description: 'Entenda o ciclo antes de montar seu sistema.', action: { label: 'Abrir editor', destination: 'boardEditor' } }
+      },
+      currentView: null,
+      currentController: null,
+      requestId: 0,
+      initialized: false,
+
+      init: function () {
+        if (this.initialized) return;
+        this.initialized = true;
+        window.addEventListener('hashchange', this.handleRouteChange.bind(this));
+        this.handleRouteChange();
+      },
+
+      getLocation: function () {
+        var raw = window.location.hash.substring(1) || 'dashboard';
+        var separator = raw.indexOf('?');
+        var view = separator >= 0 ? raw.slice(0, separator) : raw;
+        var queryString = separator >= 0 ? raw.slice(separator + 1) : '';
+        return { view: view || 'dashboard', query: new URLSearchParams(queryString) };
+      },
+
+      requiresAuth: function (viewName) {
+        return Boolean(this.routes[viewName] && this.routes[viewName].auth);
+      },
+
+      handleRouteChange: function () {
+        var location = this.getLocation();
+        if (this.requiresAuth(location.view) && !EcoGrow.State.currentUser) {
+          this.navigate('login');
+          return;
+        }
+        if ((location.view === 'login' || location.view === 'register') && EcoGrow.State.currentUser) {
+          this.navigate('dashboard');
+          return;
+        }
+        this.loadView(location.view, location.query);
+      },
+
+      loadView: function (viewName, query) {
+        var route = this.routes[viewName];
+        if (!route) {
+          this.navigate(EcoGrow.State.currentUser ? 'dashboard' : 'login');
+          return;
+        }
+        var root = document.getElementById('spa-root');
+        if (!root) return;
+        var main = document.getElementById('main-content');
+        var id = ++this.requestId;
+        root.setAttribute('aria-busy', 'true');
+        if (main) main.setAttribute('aria-busy', 'true');
+        root.innerHTML = '<div class="view-loading"><div class="view-loading-inner"><span class="loader-dot"></span><span>Preparando ambiente…</span></div></div>';
+        document.body.dataset.view = viewName;
+        document.body.classList.remove('sidebar-open');
+        var sidebar = document.getElementById('module-sidebar');
+        var sidebarTrigger = document.getElementById('open-sidebar');
+        if (sidebar) sidebar.setAttribute('aria-hidden', 'true');
+        if (sidebarTrigger) sidebarTrigger.setAttribute('aria-expanded', 'false');
+        this.updateNavigation(viewName);
+
+        google.script.run
+          .withSuccessHandler(function (htmlContent) {
+            if (id !== this.requestId) return;
+            if (this.currentController && typeof this.currentController.destroy === 'function') this.currentController.destroy();
+            root.innerHTML = typeof htmlContent === 'string' ? htmlContent : '';
+            // Scripts de componentes retornados pelo GAS não executam via innerHTML.
+            // Recriá-los preserva a navegação SPA e ativa apenas código vindo das views permitidas.
+            root.querySelectorAll('script').forEach(function (oldScript) {
+              var script = document.createElement('script');
+              Array.prototype.forEach.call(oldScript.attributes, function (attr) {
+                script.setAttribute(attr.name, attr.value);
+              });
+              script.textContent = oldScript.textContent;
+              oldScript.parentNode.replaceChild(script, oldScript);
+            });
+            root.removeAttribute('aria-busy');
+            if (main) main.setAttribute('aria-busy', 'false');
+            this.currentView = viewName;
+            this.currentController = route.controller ? window[route.controller] : null;
+            try {
+              if (this.currentController && typeof this.currentController.init === 'function') {
+                this.currentController.init(query || new URLSearchParams());
+              }
+            } catch (error) {
+              EcoGrow.UI.showMessage('A tela foi aberta, mas não pôde ser inicializada: ' + error.message, 'error');
+            }
+            var main = document.getElementById('main-content');
+            var preferredFocus = root.querySelector('[autofocus]');
+            if (preferredFocus) preferredFocus.focus({ preventScroll: true });
+            else if (main) main.focus({ preventScroll: true });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }.bind(this))
+          .withFailureHandler(function (error) {
+            if (id !== this.requestId) return;
+            root.setAttribute('aria-busy', 'false');
+            if (main) main.setAttribute('aria-busy', 'false');
+            root.innerHTML = '<div class="card empty-state" role="alert"><h2 tabindex="-1" data-load-error-title>Não foi possível abrir esta área.</h2><span>Tente novamente em instantes.</span><br><button class="btn btn-small" type="button" data-retry-view>Recarregar</button></div>';
+            var retry = root.querySelector('[data-retry-view]');
+            var errorTitle = root.querySelector('[data-load-error-title]');
+            if (retry) retry.addEventListener('click', function () { EcoGrow.Router.loadView(viewName, query); });
+            if (errorTitle) errorTitle.focus({ preventScroll: true });
+            EcoGrow.UI.showMessage(error && error.message ? error.message : 'Falha ao carregar a tela.', 'error');
+          })
+          .getHtmlContent(route.view);
+      },
+
+      updateNavigation: function (viewName) {
+        var route = this.routes[viewName] || {};
+        document.querySelectorAll('.nav-link[data-view]').forEach(function (link) {
+          var active = link.dataset.view === viewName;
+          link.classList.toggle('active', active);
+          if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+        });
+        var kicker = document.getElementById('route-kicker');
+        var title = document.getElementById('route-title');
+        var description = document.getElementById('route-description');
+        var action = document.getElementById('route-action');
+        if (kicker) kicker.textContent = route.kicker || 'EcoGrow';
+        if (title) title.textContent = route.label || viewName || 'EcoGrow';
+        if (description) description.textContent = route.description || '';
+        if (action) {
+          var nextAction = route.action;
+          action.hidden = !nextAction;
+          if (nextAction) {
+            action.href = '#' + nextAction.destination;
+            action.textContent = nextAction.label;
+            action.setAttribute('aria-label', nextAction.label + ': ' + (route.label || viewName));
+          }
+        }
+        document.title = route.label ? 'EcoGrow · ' + route.label : 'EcoGrow Habitat Lab';
+      },
+
+      navigate: function (destination) {
+        var next = '#' + destination;
+        if (window.location.hash === next) this.handleRouteChange(); else window.location.hash = destination;
+      }
+    },
+
+    UI: {
+      pendingRequests: 0,
+
+      showMessage: function (message, type) {
+        type = ['success', 'error', 'warning', 'info'].indexOf(type) >= 0 ? type : 'info';
+        var region = document.getElementById('toast-region');
+        if (!region) return;
+        var toast = window.Component_Alert ? Component_Alert.create(message, type) : document.createElement('div');
+        if (!window.Component_Alert) { toast.className = 'toast toast-' + type; toast.textContent = String(message || ''); }
+        region.appendChild(toast);
+        window.setTimeout(function () { if (toast.isConnected) toast.remove(); }, type === 'error' ? 7000 : 4500);
+      },
+
+      showLoading: function () {
+        this.pendingRequests += 1;
+        document.body.classList.add('loading');
+        var overlay = document.getElementById('loading-overlay');
+        if (overlay) overlay.setAttribute('aria-hidden', 'false');
+      },
+
+      hideLoading: function () {
+        this.pendingRequests = Math.max(0, this.pendingRequests - 1);
+        if (this.pendingRequests) return;
+        document.body.classList.remove('loading');
+        var overlay = document.getElementById('loading-overlay');
+        if (overlay) overlay.setAttribute('aria-hidden', 'true');
+      },
+
+      // Escape dos 5 caracteres, e nao textContent->innerHTML: aspas
+      // precisam sair escapadas para o valor poder entrar em atributo.
+      escapeHtml: function (value) {
+        return (value == null ? '' : String(value))
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      },
+
+      formatDate: function (value) {
+        var date = value ? new Date(value) : null;
+        if (!date || Number.isNaN(date.getTime())) return 'recentemente';
+        return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+      },
+
+      showConfirm: function (title, message, onConfirm, onCancel, options) {
+        options = options || {};
+        var existing = document.getElementById('ecogrow-confirm-modal');
+        if (existing) existing.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'ecogrow-confirm-modal';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;';
+        overlay.innerHTML = `
+          <div style="background:#ffffff;color:#1e293b;border:2px solid #bbf7d0;border-radius:16px;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,0.25);">
+            <h3 style="margin:0 0 10px;font-size:1.2rem;color:#15803d;display:flex;align-items:center;gap:8px;">${EcoGrow.UI.escapeHtml(title || 'Confirmação')}</h3>
+            <p style="margin:0 0 20px;font-size:0.92rem;color:#475569;line-height:1.45;">${EcoGrow.UI.escapeHtml(message || 'Tem certeza que deseja prosseguir?')}</p>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button type="button" class="btn btn-secondary" id="eg-confirm-cancel" style="min-height:44px;padding:8px 16px;border-radius:8px;cursor:pointer;">${EcoGrow.UI.escapeHtml(options.cancelText || 'Cancelar')}</button>
+              <button type="button" class="btn ${options.danger ? 'btn-danger' : 'btn-primary'}" id="eg-confirm-ok" style="min-height:44px;padding:8px 18px;border-radius:8px;cursor:pointer;background:${options.danger ? '#dc2626' : '#15803d'};color:#ffffff;border:none;font-weight:700;">${EcoGrow.UI.escapeHtml(options.confirmText || 'Confirmar')}</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+
+        var remove = function () { overlay.remove(); };
+        document.getElementById('eg-confirm-cancel').addEventListener('click', function () {
+          remove();
+          if (typeof onCancel === 'function') onCancel();
+        });
+        document.getElementById('eg-confirm-ok').addEventListener('click', function () {
+          remove();
+          if (typeof onConfirm === 'function') onConfirm();
+        });
+      }
+    }
+  };
+</script>

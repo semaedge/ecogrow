@@ -1,0 +1,22 @@
+<div class="container help-page">
+  <header class="help-hero"><span class="eyebrow">Guia para investigar</span><h1 class="page-title">Como a água pode circular?</h1><p class="page-subtitle">Monte um desenho, teste uma ideia e mude uma coisa de cada vez.</p></header>
+  <section class="safety-note" role="note" aria-label="Aviso de segurança">
+    <strong>Importante: isto é uma simulação.</strong>
+    <span>Não use água de pia, banheiro ou esgoto de verdade. Uma atividade prática só pode acontecer com materiais seguros escolhidos por um adulto da escola.</span>
+  </section>
+  <section class="quick-steps">
+    <article><span>01</span><div><h2>Escolha</h2><p>Abra <strong>Construir</strong> e selecione módulos na biblioteca.</p></div></article>
+    <article><span>02</span><div><h2>Ligue</h2><p>Mostre por onde a água entra, passa por cuidados e chega à saída.</p></div></article>
+    <article><span>03</span><div><h2>Teste</h2><p>Leia as pistas do modelo e altere apenas uma peça para comparar.</p></div></article>
+  </section>
+  <div class="help-grid">
+    <section class="card"><span class="concept-mark water">≈</span><h2>Água cinza</h2><p>É a água já usada em chuveiros, pias e lavanderias. Mesmo parecendo limpa, ela precisa de cuidados antes de qualquer reúso.</p><ul><li>No desenho, mantenha separada da água do vaso sanitário</li><li>Faça passar por etapas de tratamento</li><li>Lembre: o jogo não autoriza reúso real</li></ul></section>
+    <section class="card"><span class="concept-mark dark">●</span><h2>Água do vaso sanitário</h2><p>Também é chamada de água negra. Pode carregar microrganismos que causam doenças.</p><ul><li>Nunca toque nem faça experiências com água real desse tipo</li><li>No modelo, use mais de uma etapa de cuidado</li><li>Peça ajuda ao professor para ler os alertas</li></ul></section>
+    <section class="card"><span class="concept-mark grow">↑</span><h2>Alimento para as plantas</h2><p>N, P e K são letras usadas para três nutrientes: nitrogênio, fósforo e potássio.</p><ul><li>Escolha uma planta no canteiro</li><li>Compare o que ela precisa com o que recebe</li><li>Mude uma peça e teste de novo</li></ul></section>
+    <section class="card"><span class="concept-mark amber">◎</span><h2>Como aprender com o resultado</h2><p>O número resume apenas as regras do jogo. Ele não é nota e não prova que um sistema real é seguro.</p><ul><li>Leia primeiro os alertas</li><li>Explique por que escolheu uma mudança</li><li>Compare a nova tentativa com a anterior</li></ul></section>
+  </div>
+  <section class="help-cta"><div><span class="eyebrow">Pronto para testar?</span><h2>Monte um ciclo simples e evolua por iterações.</h2></div><button class="btn" type="button" onclick="EcoGrow.Router.navigate('boardEditor')">Abrir editor</button></section>
+</div>
+<style>
+  .help-page{display:grid;gap:26px}.help-hero{padding:24px 0 10px}.safety-note{display:grid;gap:5px;padding:18px 20px;border:2px solid #d97706;border-radius:var(--radius-md);background:#fff7e6;color:#6f4300}.quick-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.quick-steps article{display:flex;gap:14px;padding:18px;border:1px solid var(--line);border-radius:var(--radius-md);background:#fff}.quick-steps article>span{color:var(--primary-color);font:800 12px 'Manrope'}.quick-steps h2{font-size:16px}.quick-steps p{margin-top:4px;color:var(--text-muted);font-size:12px}.help-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.help-grid .card{position:relative;padding:26px}.help-grid h2{margin-bottom:9px;font-size:19px}.help-grid p{color:var(--text-muted)}.help-grid ul{margin-top:15px;color:var(--dark-gray);font-size:13px}.help-grid li+li{margin-top:6px}.concept-mark{width:42px;height:42px;display:grid;place-items:center;margin-bottom:18px;border-radius:12px;font-size:20px;font-weight:800}.concept-mark.water{background:#e2f2f5;color:#147d92}.concept-mark.dark{background:#eee8e4;color:#684f43}.concept-mark.grow{background:#e6f3de;color:#4c7e2b}.concept-mark.amber{background:#fff0da;color:#b8791c}.help-cta{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:25px 28px;border-radius:var(--radius-md);background:var(--primary-soft)}.help-cta h2{margin-top:5px;font-size:20px}@media(max-width:760px){.quick-steps,.help-grid{grid-template-columns:1fr}.help-cta{align-items:flex-start;flex-direction:column}}
+</style>

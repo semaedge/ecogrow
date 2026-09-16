@@ -1,0 +1,21 @@
+<div class="auth-shell">
+  <section class="auth-intro">
+    <span class="eyebrow">Comece hoje</span>
+    <h1>Aprenda sustentabilidade colocando ideias em movimento.</h1>
+    <p>Monte seu primeiro habitat, rode diagnósticos e descubra como cada decisão afeta água, solo e cultivo.</p>
+    <div class="auth-cycle"><span>Construir</span><i>→</i><span>Simular</span><i>→</i><span>Aprender</span></div>
+  </section>
+  <section class="auth-card">
+    <span class="eyebrow">Novo explorador</span>
+    <h2>Crie sua conta</h2>
+    <p>Seu progresso e seus sistemas ficam salvos no laboratório.</p>
+    <form id="register-form" autocomplete="on" aria-describedby="auth-feedback">
+      <div class="form-group"><label for="reg-username">Usuário</label><input inputmode="text" type="text" id="reg-username" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" minlength="3" maxlength="32" pattern="[A-Za-z0-9_.-]+" placeholder="Como quer ser chamado?" required autofocus></div>
+      <div class="form-group"><label for="reg-password">Senha</label><div class="password-control"><input inputmode="text" type="password" id="reg-password" name="password" autocomplete="new-password" enterkeyhint="next" minlength="8" maxlength="128" placeholder="Crie uma senha (mínimo 8 caracteres)" required><button class="password-toggle" type="button" data-password-toggle="reg-password" aria-controls="reg-password" aria-pressed="false" aria-label="Mostrar senha"><i class="material-icons" aria-hidden="true">visibility</i></button></div></div>
+      <div class="form-group"><label for="reg-password-confirm">Confirmar senha</label><div class="password-control"><input inputmode="text" type="password" id="reg-password-confirm" name="passwordConfirm" autocomplete="new-password" enterkeyhint="go" minlength="8" maxlength="128" placeholder="Repita a senha" required><button class="password-toggle" type="button" data-password-toggle="reg-password-confirm" aria-controls="reg-password-confirm" aria-pressed="false" aria-label="Mostrar confirmação da senha"><i class="material-icons" aria-hidden="true">visibility</i></button></div></div>
+      <p class="auth-feedback" id="auth-feedback" role="alert" aria-live="assertive" aria-atomic="true"></p>
+      <button type="submit" class="btn auth-submit">Criar conta</button>
+    </form>
+    <p class="auth-switch">Já tem acesso? <a href="#login">Entrar</a></p>
+  </section>
+</div>

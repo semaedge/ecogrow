@@ -1,0 +1,42 @@
+<!--
+ * Arquivo: View_Reports.html
+ * Funcionalidade: Tela de estatísticas e relatórios. Permite ao jogador visualizar o desempenho de suas Tiny Houses e simulações ao longo do tempo, com gráficos e dados detalhados.
+ * Integrações: Exibido via Js_Global.html (Router). Interage com Js_Reports.html para buscar e exibir dados dos relatórios.
+ * Dependências: Css_Global.html, Css_UI_Components.html.
+ -->
+<div class="container">
+  <div class="card">
+    <div class="card-header">Relatórios e Estatísticas</div>
+    <div class="card-body">
+      <p>Analise o desempenho de suas simulações e o impacto de suas escolhas de design.</p>
+
+      <div class="tabs">
+        <button class="tab-button active" data-tab="user-performance">Desempenho do Usuário</button>
+        <button class="tab-button" data-tab="board-analysis">Análise de Tabuleiro</button>
+      </div>
+
+      <div id="user-performance-tab" class="tab-content">
+        <h3>Relatório de Desempenho Geral</h3>
+        <div id="user-performance-report-content">
+          <p>Carregando dados...</p>
+        </div>
+        <button id="download-user-report-btn" class="btn btn-secondary" type="button">Download Relatório</button>
+      </div>
+
+      <div id="board-analysis-tab" class="tab-content hidden">
+        <h3>Análise Detalhada do Tabuleiro</h3>
+        <div class="form-group">
+          <label for="select-board-for-report">Selecionar Tabuleiro:</label>
+          <select id="select-board-for-report">
+            <!-- Opções de tabuleiros serão carregadas via JS -->
+          </select>
+        </div>
+        <div id="board-analysis-report-content">
+          <p>Selecione um tabuleiro para ver a análise.</p>
+        </div>
+        <button id="download-board-report-btn" class="btn btn-secondary" type="button" hidden>Download Relatório</button>
+      </div>
+
+    </div>
+  </div>
+</div>

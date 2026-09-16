@@ -1,0 +1,51 @@
+<!--
+ * Arquivo: Css_Animations.html
+ * Funcionalidade: Contém definições de animações CSS para elementos da UI, como transições de módulos, efeitos de fluxo de água e feedback visual.
+ * Integrações: Pode ser incluído em Index.html ou em Views específicas que utilizem animações.
+ * Dependências: Nenhuma.
+ -->
+<style>
+  /* Exemplo de animação para módulos */
+  @keyframes module-spawn {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .module-item.new {
+    animation: module-spawn 0.3s ease-out;
+  }
+
+  /* Animação de destaque para elementos interativos */
+  @keyframes pulse-highlight {
+    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+  }
+
+  .highlight-pulse {
+    animation: pulse-highlight 1.5s infinite;
+  }
+
+  /* Animação de erro/alerta */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+
+  .error-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  /* Animação de fluxo de água (exemplo mais complexo) */
+  @keyframes water-flow {
+    0% { background-position: 0 0; }
+    100% { background-position: 50px 50px; } /* Ajustar conforme o tamanho do grid */
+  }
+
+  .flow-path {
+    background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
+    background-size: 10px 10px; /* Tamanho das "ondas" */
+    animation: water-flow 1s linear infinite;
+  }
+</style>

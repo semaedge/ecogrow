@@ -1,0 +1,75 @@
+<script>
+  var Js_Profile = {
+    init: function () {
+      if (!EcoGrow.State.currentUser) {
+        EcoGrow.Router.navigate('login');
+        return;
+      }
+      var form = document.getElementById('profile-form');
+      var deleteButton = document.getElementById('delete-account-btn');
+      if (!form || !deleteButton) return;
+      Js_Validation_UI.bindForm(form);
+      form.addEventListener('submit', this.handleProfileUpdate.bind(this));
+      deleteButton.addEventListener('click', this.handleDeleteAccount.bind(this));
+      this.loadProfileData();
+    },
+
+    setValue: function (id, value) {
+      var element = document.getElementById(id);
+      if (element) element.value = value || '';
+    },
+
+    loadProfileData: function () {
+      EcoGrow.Api.call('user/profile').then(function (profile) {
+        EcoGrow.State.currentUser = Object.assign({}, EcoGrow.State.currentUser, profile);
+        Js_Profile.setValue('profile-username', profile.username);
+        Js_Profile.setValue('profile-role', profile.role);
+        Js_Profile.setValue('profile-display-name', profile.displayName || profile.username);
+        Js_Profile.setValue('profile-email', profile.email);
+      }).catch(function (error) {
+        EcoGrow.UI.showMessage('Não foi possível atualizar o perfil: ' + error.message, 'error');
+      });
+    },
+
+    handleProfileUpdate: function (event) {
+      event.preventDefault();
+      var form = event.currentTarget;
+      if (!Js_Validation_UI.validateForm(form)) return;
+      var updates = {
+        displayName: form.elements.displayName.value.trim(),
+        email: form.elements.email.value.trim()
+      };
+      var button = form.querySelector('[type="submit"]');
+      if (button) button.disabled = true;
+      EcoGrow.Api.call("user/update", { updates: updates }).then(function () {
+        EcoGrow.State.currentUser.displayName = updates.displayName;
+        EcoGrow.State.currentUser.email = updates.email;
+        Js_Auth.updateUIForLoggedInUser();
+        EcoGrow.UI.showMessage('Perfil atualizado com sucesso.', 'success');
+      }).catch(function (error) {
+        EcoGrow.UI.showMessage('Erro ao atualizar perfil: ' + error.message, 'error');
+      }).finally(function () { if (button) button.disabled = false; });
+    },
+
+    handleDeleteAccount: function () {
+      EcoGrow.UI.showConfirm(
+        'Excluir conta',
+        'Tem certeza que deseja excluir sua conta permanentemente? Esta ação não pode ser desfeita.',
+        function () {
+          var button = document.getElementById('delete-account-btn');
+          if (button) button.disabled = true;
+          EcoGrow.Api.call('user/delete').then(function (response) {
+            Js_Auth.clearSession();
+            EcoGrow.UI.showMessage((response && response.message) || 'Conta excluída.', 'success');
+            EcoGrow.Router.navigate('login');
+          }).catch(function (error) {
+            EcoGrow.UI.showMessage('Erro ao excluir conta: ' + error.message, 'error');
+            if (button) button.disabled = false;
+          });
+        },
+        null,
+        { confirmText: 'Sim, excluir', danger: true }
+      );
+    }
+  };
+</script>

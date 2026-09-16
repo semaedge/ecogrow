@@ -1,0 +1,33 @@
+<!--
+ * Arquivo: View_Profile.html
+ * Funcionalidade: Tela para o usuário visualizar e editar seus dados de perfil, como nome de usuário e outras informações relevantes.
+ * Integrações: Exibido via Js_Global.html (Router). Interage com Js_Profile.html para buscar e atualizar dados do perfil.
+ * Dependências: Css_Global.html, Css_UI_Components.html.
+ -->
+<div class="container">
+  <div class="card">
+    <div class="card-header">Meu Perfil</div>
+    <div class="card-body">
+      <form id="profile-form">
+        <div class="form-group">
+          <label for="profile-username">Usuário:</label>
+          <input inputmode="text" type="text" id="profile-username" name="username" disabled>
+        </div>
+        <div class="form-group">
+          <label for="profile-role">Função:</label>
+          <input inputmode="text" type="text" id="profile-role" name="role" disabled>
+        </div>
+        <div class="form-group">
+          <label for="profile-display-name">Nome de exibição:</label>
+          <input inputmode="text" type="text" id="profile-display-name" name="displayName" maxlength="80" autocomplete="name" required>
+        </div>
+        <div class="form-group">
+          <label for="profile-email">E-mail:</label>
+          <input inputmode="email" type="email" id="profile-email" name="email" maxlength="254" autocomplete="email">
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+      </form>
+      <button id="delete-account-btn" class="btn btn-danger" type="button" style="margin-top: 15px;">Excluir Conta</button>
+    </div>
+  </div>
+</div>

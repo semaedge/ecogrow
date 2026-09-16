@@ -1,0 +1,14 @@
+<template id="board-cell-template"><div class="grid-cell" role="gridcell" tabindex="0"></div></template>
+<script>
+  var Component_Cell = {
+    create: function (x, y, z) {
+      var template = document.getElementById('board-cell-template');
+      var cell = template.content.firstElementChild.cloneNode(true);
+      cell.dataset.x = Number(x);
+      cell.dataset.y = Number(y);
+      cell.dataset.z = Number(z);
+      cell.setAttribute('aria-label', 'Célula ' + (Number(x) + 1) + ', ' + (Number(y) + 1) + ', camada ' + (Number(z) + 1));
+      return cell;
+    }
+  };
+</script>

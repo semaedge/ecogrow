@@ -1,0 +1,45 @@
+<template id="npk-bar-template">
+  <section class="npk-diagnostic" aria-label="Níveis de nutrientes">
+    <div class="npk-row" data-nutrient="N"><span>N</span><div class="progress-bar-container"><div class="progress-bar-fill"></div></div><strong>0</strong></div>
+    <div class="npk-row" data-nutrient="P"><span>P</span><div class="progress-bar-container"><div class="progress-bar-fill"></div></div><strong>0</strong></div>
+    <div class="npk-row" data-nutrient="K"><span>K</span><div class="progress-bar-container"><div class="progress-bar-fill"></div></div><strong>0</strong></div>
+  </section>
+</template>
+<script>
+  var Component_NPK_Bar = {
+    clamp: function (value, max) { return Math.max(0, Math.min(100, (Number(value) || 0) / max * 100)); },
+
+    summarize: function (waterQuality) {
+      var totals = { N: 0, P: 0, K: 0 };
+      Object.keys(waterQuality || {}).forEach(function (key) {
+        var npk = waterQuality[key] && waterQuality[key].npk || {};
+        totals.N += Number(npk.N) || 0;
+        totals.P += Number(npk.P) || 0;
+        totals.K += Number(npk.K) || 0;
+      });
+      return totals;
+    },
+
+    mount: function (container, values, options) {
+      if (typeof container === 'string') container = document.getElementById(container);
+      if (!container) return null;
+      options = options || {};
+      var max = Math.max(.01, Number(options.max) || 1);
+      var template = document.getElementById('npk-bar-template');
+      var component = template.content.firstElementChild.cloneNode(true);
+      ['N', 'P', 'K'].forEach(function (nutrient) {
+        var value = Math.max(0, Number(values && values[nutrient]) || 0);
+        var row = component.querySelector('[data-nutrient="' + nutrient + '"]');
+        var percent = Component_NPK_Bar.clamp(value, max);
+        row.querySelector('.progress-bar-fill').style.width = percent.toFixed(0) + '%';
+        row.querySelector('strong').textContent = value.toFixed(2);
+        row.setAttribute('aria-label', nutrient + ': ' + value.toFixed(2));
+      });
+      container.replaceChildren(component);
+      return component;
+    }
+  };
+</script>
+<style>
+  .npk-diagnostic{display:grid;gap:8px;margin-top:18px}.npk-row{display:grid;grid-template-columns:16px 1fr 34px;align-items:center;gap:8px;font-size:10px}.npk-row>span{font-weight:800}.npk-row>strong{text-align:right;font-size:10px}.npk-row .progress-bar-container{margin:0;height:6px}.npk-row[data-nutrient="P"] .progress-bar-fill{background:#3c8fc1}.npk-row[data-nutrient="K"] .progress-bar-fill{background:#d49b3e}
+</style>

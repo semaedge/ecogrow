@@ -1,0 +1,246 @@
+<script>
+  var Js_Auth = {
+    storageKey: 'ecoGrowToken',
+
+    initSession: function () {
+      this.bindLogoutButton();
+      return this.checkSession();
+    },
+
+    init: function () {
+      var loginForm = document.getElementById('login-form');
+      var registerForm = document.getElementById('register-form');
+      if (loginForm && loginForm.dataset.authBound !== 'true') {
+        loginForm.dataset.authBound = 'true';
+        Js_Validation_UI.bindForm(loginForm);
+        loginForm.addEventListener('submit', this.handleLogin.bind(this));
+      }
+      if (registerForm && registerForm.dataset.authBound !== 'true') {
+        registerForm.dataset.authBound = 'true';
+        Js_Validation_UI.bindForm(registerForm);
+        registerForm.addEventListener('submit', this.handleRegister.bind(this));
+      }
+      this.bindPasswordToggles();
+      this.bindLoginPreview();
+      this.mountBrandLogo();
+      this.bindLogoutButton();
+    },
+
+    bindLoginPreview: function () {
+      var choices = document.querySelectorAll('.preview-choice');
+      var feedback = document.getElementById('previewFeedback');
+      if (!choices.length || !feedback) return;
+      var messages = {
+        water: 'Ótima escolha! Todo ciclo começa captando água limpa. Agora você vai aprender a tratá-la e reutilizá-la.',
+        treatment: 'Interessante! O tratamento é o coração do sistema. Mas primeiro precisamos captar a água. Entre para montar seu ciclo completo.',
+        cultivation: 'Pensar no destino final é importante! Antes de as plantas receberem nutrientes, precisamos captar e tratar. Crie sua conta para completar o ciclo.'
+      };
+      choices.forEach(function (choice) {
+        if (choice.dataset.previewBound === 'true') return;
+        choice.dataset.previewBound = 'true';
+        choice.addEventListener('click', function () {
+          choices.forEach(function (item) {
+            var selected = item === choice;
+            item.classList.toggle('selected', selected);
+            item.setAttribute('aria-pressed', String(selected));
+          });
+          feedback.textContent = messages[choice.dataset.choice] || 'Entre para construir seu primeiro sistema completo!';
+          var usernameInput = document.getElementById('username');
+          if (usernameInput) usernameInput.focus({ preventScroll: true });
+        });
+      });
+    },
+
+    mountBrandLogo: function () {
+      var target = document.querySelector('[data-brand-logo]');
+      var source = window.EcoGrowBrandLogo;
+      if (!target || !source || target.querySelector('.codex-login-logo')) return;
+      var image = document.createElement('img');
+      image.className = 'codex-login-logo';
+      image.src = source;
+      image.alt = 'Marca EcoGrow';
+      target.replaceChildren(image);
+    },
+
+    bindPasswordToggles: function () {
+      document.querySelectorAll('[data-password-toggle]').forEach(function (button) {
+        if (button.dataset.bound === 'true') return;
+        button.dataset.bound = 'true';
+        button.addEventListener('click', function () {
+          var input = document.getElementById(button.getAttribute('data-password-toggle'));
+          if (!input) return;
+          var showing = input.type === 'text';
+          input.type = showing ? 'password' : 'text';
+          var icon = button.querySelector('.material-icons');
+          if (icon) icon.textContent = showing ? 'visibility' : 'visibility_off';
+          else button.textContent = showing ? 'Mostrar' : 'Ocultar';
+          button.setAttribute('aria-pressed', showing ? 'false' : 'true');
+          button.setAttribute('aria-label', (showing ? 'Mostrar ' : 'Ocultar ') +
+            (input.name === 'passwordConfirm' ? 'confirmação da senha' : 'senha'));
+          input.focus();
+        });
+      });
+    },
+
+    bindLogoutButton: function () {
+      var logoutButton = document.getElementById('logout-button');
+      if (!logoutButton || logoutButton.dataset.bound === 'true') return;
+      logoutButton.dataset.bound = 'true';
+      logoutButton.addEventListener('click', this.handleLogout.bind(this));
+    },
+
+    readToken: function () {
+      try { return window.localStorage.getItem(this.storageKey); } catch (error) { return null; }
+    },
+
+    saveToken: function (token) {
+      try { window.localStorage.setItem(this.storageKey, token); return true; } catch (error) {
+        EcoGrow.UI.showMessage('O navegador bloqueou o armazenamento da sessão.', 'warning');
+        return false;
+      }
+    },
+
+    checkSession: function () {
+      var token = this.readToken();
+      if (!token) {
+        this.clearSession();
+        if (EcoGrow.Router.requiresAuth(EcoGrow.Router.getLocation().view)) EcoGrow.Router.navigate('login');
+        return Promise.resolve(null);
+      }
+      return EcoGrow.Api.call('user/profile', { token: token }).then(function (profile) {
+        EcoGrow.State.currentUser = Object.assign({}, profile, { token: token });
+        Js_Auth.updateUIForLoggedInUser();
+        var current = EcoGrow.Router.getLocation().view;
+        if (current === 'login' || current === 'register') EcoGrow.Router.navigate('dashboard');
+        return EcoGrow.State.currentUser;
+      }).catch(function (error) {
+        Js_Auth.clearSession();
+        if (EcoGrow.Router.getLocation().view !== 'register') EcoGrow.Router.navigate('login');
+        if (error.status && error.status !== 401) EcoGrow.UI.showMessage('Não foi possível validar sua sessão.', 'warning');
+        return null;
+      });
+    },
+
+    setSubmitting: function (form, submitting) {
+      var button = form && form.querySelector('[type="submit"]');
+      if (!button) return;
+      if (!button.dataset.label) button.dataset.label = button.textContent;
+      form.dataset.submitting = submitting ? 'true' : 'false';
+      button.disabled = submitting;
+      button.setAttribute('aria-busy', submitting ? 'true' : 'false');
+      form.setAttribute('aria-busy', submitting ? 'true' : 'false');
+      button.textContent = submitting ? 'Aguarde…' : button.dataset.label;
+    },
+
+    showAuthMessage: function (form, message) {
+      var feedback = form && form.querySelector('.auth-feedback');
+      if (feedback) feedback.textContent = message || '';
+    },
+
+    handleLogin: function (event) {
+      event.preventDefault();
+      var form = event.currentTarget;
+      if (form.dataset.submitting === 'true') return;
+      if (!Js_Validation_UI.validateForm(form)) return;
+      this.showAuthMessage(form, '');
+      this.setSubmitting(form, true);
+      EcoGrow.Api.call('auth/login', {
+        username: form.elements.username.value.trim(),
+        password: form.elements.password.value
+      }).then(function (data) {
+        Js_Auth.saveToken(data.token);
+        EcoGrow.State.currentUser = data;
+        Js_Auth.updateUIForLoggedInUser();
+        EcoGrow.UI.showMessage('Login realizado com sucesso.', 'success');
+        EcoGrow.Router.navigate('dashboard');
+      }).catch(function (error) {
+        Js_Auth.showAuthMessage(form, error.message || 'Falha no login.');
+      }).finally(function () { Js_Auth.setSubmitting(form, false); });
+    },
+
+    handleRegister: function (event) {
+      event.preventDefault();
+      var form = event.currentTarget;
+      if (!Js_Validation_UI.validateForm(form)) return;
+      this.showAuthMessage(form, '');
+      var password = form.elements.password.value;
+      var confirmation = form.elements.passwordConfirm.value;
+      if (password !== confirmation) {
+        Js_Validation_UI.showError(form.elements.passwordConfirm, 'As senhas não coincidem.');
+        this.showAuthMessage(form, 'As senhas não coincidem.');
+        form.elements.passwordConfirm.focus();
+        return;
+      }
+      this.setSubmitting(form, true);
+      EcoGrow.Api.call('auth/register', { username: form.elements.username.value.trim(), password: password })
+        .then(function (data) {
+          Js_Auth.saveToken(data.token);
+          EcoGrow.State.currentUser = data;
+          Js_Auth.updateUIForLoggedInUser();
+          EcoGrow.UI.showMessage('Conta criada com sucesso.', 'success');
+          EcoGrow.Router.navigate('dashboard');
+        }).catch(function (error) {
+          Js_Auth.showAuthMessage(form, error.message || 'Falha no cadastro.');
+        }).finally(function () { Js_Auth.setSubmitting(form, false); });
+    },
+
+    handleLogout: function () {
+      var logoutButton = document.getElementById('logout-button');
+      var originalLabel = logoutButton ? logoutButton.textContent : 'Sair';
+      if (logoutButton) {
+        logoutButton.disabled = true;
+        logoutButton.textContent = 'Saindo…';
+      }
+      var finalize = function () {
+        Js_Auth.clearSession();
+        EcoGrow.UI.showMessage('Você foi desconectado.', 'info');
+        EcoGrow.Router.navigate('login');
+      };
+      var retry = function () {
+        if (logoutButton) {
+          logoutButton.disabled = false;
+          logoutButton.textContent = 'Tentar sair novamente';
+        }
+        EcoGrow.UI.showMessage('Não foi possível confirmar o logout. Sua sessão continua aberta; tente novamente.', 'warning');
+      };
+      if (!EcoGrow.State.currentUser || !EcoGrow.State.currentUser.token) {
+        finalize();
+        return Promise.resolve();
+      }
+      return EcoGrow.Api.call("auth/logout", {}).then(finalize).catch(retry).finally(function () {
+        if (logoutButton && !EcoGrow.State.currentUser) logoutButton.textContent = originalLabel;
+      });
+    },
+
+    clearSession: function () {
+      try { window.localStorage.removeItem(this.storageKey); } catch (error) { /* A memória ainda é limpa. */ }
+      EcoGrow.State.currentUser = null;
+      EcoGrow.State.currentBoard = null;
+      if (window.Js_Notifications) { Js_Notifications.refreshBadge(0); Js_Notifications.hide(); }
+      this.updateUIForLoggedOutUser();
+    },
+
+    updateUIForLoggedInUser: function () {
+      var user = EcoGrow.State.currentUser || {};
+      var playerName = document.getElementById('player-name');
+      var playerBalance = document.getElementById('player-balance');
+      var logoutButton = document.getElementById('logout-button');
+      var notificationButton = document.getElementById('notification-button');
+      if (playerName) playerName.textContent = user.displayName || user.username || 'Jogador';
+      if (playerBalance) playerBalance.textContent = (Number(user.balance) || 0) + ' créditos';
+      if (logoutButton) { logoutButton.hidden = false; logoutButton.style.display = 'inline-flex'; }
+      if (notificationButton) { notificationButton.hidden = false; notificationButton.style.display = 'grid'; }
+    },
+
+    updateUIForLoggedOutUser: function () {
+      var playerName = document.getElementById('player-name');
+      var playerBalance = document.getElementById('player-balance');
+      var logoutButton = document.getElementById('logout-button');
+      var notificationButton = document.getElementById('notification-button');
+      if (playerName) playerName.textContent = 'Convidado';
+      if (playerBalance) playerBalance.textContent = '0 créditos';
+      if (logoutButton) { logoutButton.hidden = true; logoutButton.style.display = 'none'; }
+      if (notificationButton) { notificationButton.hidden = true; notificationButton.style.display = 'none'; }
+    }
+  };
+</script>
